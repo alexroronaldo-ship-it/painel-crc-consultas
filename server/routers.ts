@@ -18,7 +18,9 @@ export const appRouter = router({
     }),
   }),
   closures: router({
-    list: protectedProcedure.query(() => listClosures()),
+    list: protectedProcedure
+      .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/).optional() }).optional())
+      .query(({ input }) => listClosures(input?.month)),
     clearTestData: protectedProcedure
       .input(z.object({ password: z.string() }))
       .mutation(async ({ input }) => {

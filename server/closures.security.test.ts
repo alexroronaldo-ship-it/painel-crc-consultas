@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const { deleteAllClosures, deleteClosure } = vi.hoisted(() => ({
+const { deleteAllClosures, deleteClosure, listClosures } = vi.hoisted(() => ({
   deleteAllClosures: vi.fn(),
   deleteClosure: vi.fn(),
+  listClosures: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("./db", () => ({
   createClosure: vi.fn(),
-  listClosures: vi.fn().mockResolvedValue([]),
+  listClosures,
   deleteAllClosures,
   deleteClosure,
 }));
@@ -51,5 +52,11 @@ describe("closures protected deletion", () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.closures.clearTestData({ password: "0000" })).resolves.toEqual({ success: true });
     expect(deleteAllClosures).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards the selected month to the dashboard query", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.closures.list({ month: "2026-09" })).resolves.toEqual([]);
+    expect(listClosures).toHaveBeenCalledWith("2026-09");
   });
 });

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { closures, InsertClosure, InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -37,10 +37,24 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function listClosures() {
+export async function listClosures(month?: string) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(closures).orderBy(desc(closures.closingDate), desc(closures.createdAt)).limit(200);
+  if (!month) {
+    return db.select().from(closures).orderBy(desc(closures.closingDate), desc(closures.createdAt)).limit(500);
+  }
+
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextMonth = monthNumber === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+
+  return db
+    .select()
+    .from(closures)
+    .where(and(gte(closures.closingDate, `${month}-01`), lt(closures.closingDate, `${nextMonth}-01`)))
+    .orderBy(desc(closures.closingDate), desc(closures.createdAt))
+    .limit(500);
 }
 
 export async function createClosure(input: InsertClosure) {
