@@ -24,6 +24,10 @@ export const closures = mysqlTable("closures", {
   closedItem: text("closedItem").notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
+  internalStatus: mysqlEnum("internalStatus", ["closed", "follow_up", "not_closed"]).notNull().default("closed"),
+  internalNotes: text("internalNotes"),
+  nextStep: text("nextStep"),
+  internalClosingDate: varchar("internalClosingDate", { length: 10 }),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

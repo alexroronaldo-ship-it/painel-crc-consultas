@@ -54,3 +54,9 @@ export async function deleteAllClosures() {
   if (!db) throw new Error("Database is not available");
   await db.delete(closures);
 }
+
+export async function deleteClosure(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(closures).where(eq(closures.id, id));
+}
