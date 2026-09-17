@@ -19,19 +19,18 @@ export const appRouter = router({
   }),
   closures: router({
     list: protectedProcedure.query(() => listClosures()),
-    create: protectedProcedure
-      .input(z.object({
-        crcName: z.enum(crcNames),
-        patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
-        phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
-        closingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento"),
-        closedItem: z.string().trim().min(2, "Informe o que foi fechado").max(5000),
-        value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
-        return { success: true } as const;
-      }),
+    create: protectedProcedure.input(z.object({
+      crcName: z.enum(crcNames),
+      patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
+      phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
+      closingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento"),
+      closedItem: z.string().trim().min(2, "Informe o que foi fechado").max(5000),
+      value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
+      totalTimeSeconds: z.number().int().min(0).max(86400),
+    })).mutation(async ({ ctx, input }) => {
+      await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      return { success: true } as const;
+    }),
   }),
 });
 

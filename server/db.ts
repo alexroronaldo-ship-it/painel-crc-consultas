@@ -21,10 +21,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   const updateSet: Record<string, unknown> = {};
   const textFields = ["name", "email", "loginMethod"] as const;
   type TextField = (typeof textFields)[number];
-  textFields.forEach(field => {
-    const value = user[field];
-    if (value !== undefined) { const normalized = value ?? null; values[field] = normalized; updateSet[field] = normalized; }
-  });
+  textFields.forEach(field => { const value = user[field]; if (value !== undefined) { const normalized = value ?? null; values[field] = normalized; updateSet[field] = normalized; } });
   if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
   if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
   else if (user.openId === ENV.ownerOpenId) { values.role = "admin"; updateSet.role = "admin"; }

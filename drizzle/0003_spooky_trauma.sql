@@ -1,0 +1,1 @@
+ALTER TABLE `closures` ADD `totalTimeSeconds` int DEFAULT 0 NOT NULL;

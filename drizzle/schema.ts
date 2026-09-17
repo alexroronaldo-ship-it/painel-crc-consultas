@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -15,7 +15,6 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-/** Closure records maintained by the CRC team. */
 export const closures = mysqlTable("closures", {
   id: int("id").autoincrement().primaryKey(),
   crcName: varchar("crcName", { length: 32 }).notNull(),
@@ -24,6 +23,7 @@ export const closures = mysqlTable("closures", {
   closingDate: varchar("closingDate", { length: 10 }).notNull(),
   closedItem: text("closedItem").notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
