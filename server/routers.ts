@@ -3,7 +3,9 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createPatientIntake, listPatientIntakes } from "./db";
+import { createClosure, listClosures } from "./db";
+
+const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 
 export const appRouter = router({
   system: systemRouter,
@@ -15,19 +17,19 @@ export const appRouter = router({
       return { success: true } as const;
     }),
   }),
-  patientIntakes: router({
-    list: protectedProcedure.query(() => listPatientIntakes()),
+  closures: router({
+    list: protectedProcedure.query(() => listClosures()),
     create: protectedProcedure
-      .input(
-        z.object({
-          patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
-          phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
-          firstConsultationRequest: z.string().trim().min(2, "Informe o interesse inicial").max(5000),
-          scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da consulta"),
-        })
-      )
+      .input(z.object({
+        crcName: z.enum(crcNames),
+        patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
+        phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
+        closingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento"),
+        closedItem: z.string().trim().min(2, "Informe o que foi fechado").max(5000),
+        value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
+      }))
       .mutation(async ({ ctx, input }) => {
-        await createPatientIntake({ ...input, createdBy: ctx.user.id });
+        await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
         return { success: true } as const;
       }),
   }),

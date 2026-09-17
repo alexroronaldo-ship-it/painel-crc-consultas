@@ -1,6 +1,5 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
 
-/** Core user table backing auth flow. */
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
@@ -16,16 +15,18 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-/** Intake details captured by the CRC after a first consultation is scheduled. */
-export const patientIntakes = mysqlTable("patient_intakes", {
+/** Closure records maintained by the CRC team. */
+export const closures = mysqlTable("closures", {
   id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
   patientName: varchar("patientName", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
-  firstConsultationRequest: text("firstConsultationRequest").notNull(),
-  scheduledDate: varchar("scheduledDate", { length: 10 }).notNull(),
+  closingDate: varchar("closingDate", { length: 10 }).notNull(),
+  closedItem: text("closedItem").notNull(),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type PatientIntake = typeof patientIntakes.$inferSelect;
-export type InsertPatientIntake = typeof patientIntakes.$inferInsert;
+export type Closure = typeof closures.$inferSelect;
+export type InsertClosure = typeof closures.$inferInsert;
