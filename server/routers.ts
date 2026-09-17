@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createClosure, listClosures } from "./db";
+import { createClosure, deleteAllClosures, listClosures } from "./db";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 
@@ -19,6 +19,13 @@ export const appRouter = router({
   }),
   closures: router({
     list: protectedProcedure.query(() => listClosures()),
+    clearTestData: protectedProcedure
+      .input(z.object({ password: z.string() }))
+      .mutation(async ({ input }) => {
+        if (input.password !== "0000") throw new Error("Senha provisória incorreta");
+        await deleteAllClosures();
+        return { success: true } as const;
+      }),
     create: protectedProcedure.input(z.object({
       crcName: z.enum(crcNames),
       patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),

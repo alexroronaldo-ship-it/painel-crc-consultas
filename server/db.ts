@@ -48,3 +48,9 @@ export async function createClosure(input: InsertClosure) {
   if (!db) throw new Error("Database is not available");
   await db.insert(closures).values(input);
 }
+
+export async function deleteAllClosures() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(closures);
+}
