@@ -5,7 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { createClosure, deleteAllClosures, deleteClosure, listClosures } from "./db";
 
-const crcNames = ["WISLLAYNI", "JAYZA"] as const;
+const crcNames = ["VAL", "WISLLAYNI", "JAYZA"] as const;
 
 export const appRouter = router({
   system: systemRouter,
