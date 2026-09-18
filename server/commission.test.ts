@@ -4,19 +4,13 @@ import { calculateCommission, getCommissionRate } from "../client/src/lib/commis
 describe("commission tiers", () => {
   it.each([
     [46250, 0.002, 92.5],
+    [59999.99, 0.002, 119.99998],
     [60000, 0.005, 300],
     [75000, 0.005, 375],
-    [90000, 0.007, 630],
-    [100000, 0.007, 700],
-    [120000, 0.008, 960],
-  ])("calculates the reference scenario for revenue %s", (revenue, rate, commission) => {
+    [90000, 0.005, 450],
+    [120000, 0.005, 600],
+  ])("uses only the 0.20% and 0.50% tiers for revenue %s", (revenue, rate, commission) => {
     expect(getCommissionRate(revenue)).toBe(rate);
-    expect(calculateCommission(revenue)).toBe(commission);
-  });
-
-  it("keeps the lower rate immediately below each threshold", () => {
-    expect(getCommissionRate(59999.99)).toBe(0.002);
-    expect(getCommissionRate(89999.99)).toBe(0.005);
-    expect(getCommissionRate(119999.99)).toBe(0.007);
+    expect(calculateCommission(revenue)).toBeCloseTo(commission);
   });
 });
