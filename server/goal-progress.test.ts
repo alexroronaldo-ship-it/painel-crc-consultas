@@ -25,4 +25,14 @@ describe("R$ 75 mil management goal", () => {
   it("caps the progress bar at one hundred percent", () => {
     expect(calculateGoalProgress(120000).progressPercent).toBe(100);
   });
+
+  it("keeps WISLLAYNI and JAYZA progress independent", () => {
+    const wisllayni = calculateGoalProgress(8100);
+    const jayza = calculateGoalProgress(47680);
+
+    expect(wisllayni.remaining).toBe(66900);
+    expect(wisllayni.commission).toBeCloseTo(16.2);
+    expect(jayza.remaining).toBe(27320);
+    expect(jayza.commission).toBeCloseTo(95.36);
+  });
 });
