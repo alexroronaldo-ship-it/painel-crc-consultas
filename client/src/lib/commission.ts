@@ -1,7 +1,7 @@
-export const commissionScenarios = [60000, 75000] as const;
+export const commissionScenarios = [75000] as const;
 
 export function getCommissionRate(revenue: number) {
-  return revenue >= 60000 ? 0.005 : 0.002;
+  return revenue >= 75000 ? 0.005 : 0.002;
 }
 
 export function calculateCommission(revenue: number) {
