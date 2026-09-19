@@ -1,8 +1,10 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import TablePagination from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { calculateCampaignTotals, calculateCampaignWeeks } from "@/lib/campaign-metrics";
+import { paginateItems } from "@/lib/pagination";
 import { calculateWeeklyGoal } from "@/lib/weekly-sales";
 import { trpc } from "@/lib/trpc";
 import { BarChart3, CalendarDays, Check, Loader2, Megaphone, Plus, Target } from "lucide-react";
@@ -23,11 +25,13 @@ export default function Campaigns() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [weeklyGoal, setWeeklyGoal] = useState("37500");
+  const [campaignPage, setCampaignPage] = useState(1);
   const queryInput = useMemo(() => ({ month: selectedMonth }), [selectedMonth]);
   const utils = trpc.useUtils();
   const campaignsQuery = trpc.campaigns.list.useQuery();
   const closuresQuery = trpc.closures.list.useQuery(queryInput);
   const campaigns = campaignsQuery.data ?? [];
+  const paginatedCampaigns = useMemo(() => paginateItems(campaigns, campaignPage), [campaigns, campaignPage]);
   const records = closuresQuery.data ?? [];
   const totals = calculateCampaignTotals(campaigns, records);
   const activeCampaignId = selectedCampaignId ? Number(selectedCampaignId) : totals[0]?.id;
@@ -41,6 +45,7 @@ export default function Campaigns() {
   const createMutation = trpc.campaigns.create.useMutation({
     onSuccess: async () => {
       setSelectedMonth(startDate.slice(0, 7));
+      setCampaignPage(1);
       await utils.campaigns.list.invalidate();
       setName("");
       setOrigin("");
@@ -73,7 +78,7 @@ export default function Campaigns() {
 
       <Card className="mb-6 overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader className="border-b border-[#edf2f4]"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#2e7da3]">Meta semanal da campanha</p><CardTitle className="mt-1 text-xl text-[#174f6f]">{activeCampaign?.name || "Selecione uma campanha"}</CardTitle><p className="text-xs text-[#84949c]">S1 a S4 usam somente os fechamentos vinculados à campanha selecionada.</p></div>{campaigns.length > 0 && <div><label htmlFor="active-campaign" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6e7f88]">Campanha exibida</label><select id="active-campaign" value={activeCampaignId ?? ""} onChange={event => setSelectedCampaignId(event.target.value)} className="h-9 max-w-xs rounded-md border border-[#d7e5ec] bg-white px-3 text-sm text-[#335f76]">{campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select></div>}</div></CardHeader><CardContent className="p-5 sm:p-6">{!activeCampaign || !activeTotal ? <EmptyState /> : <CampaignWeeklyChart weeks={weeks} weeklyGoal={Number(activeCampaign.weeklyGoal)} total={activeTotal.total} />}</CardContent></Card>
 
-      {campaigns.length > 0 && <Card className="overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-base text-[#174f6f]">Campanhas inscritas</CardTitle><p className="text-xs text-[#84949c]">Use o nome da campanha no seletor do novo fechamento.</p></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[820px] text-sm"><thead><tr className="border-y border-[#e5edf1] bg-[#f7fafb] text-left text-xs uppercase tracking-wide text-[#6e7f88]"><th className="px-5 py-3">Campanha</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Período</th><th className="px-5 py-3 text-right">Meta semanal</th><th className="px-5 py-3 text-right">Valor no mês</th></tr></thead><tbody className="divide-y divide-[#edf2f4]">{campaigns.map(campaign => { const summary = totals.find(item => item.id === campaign.id); return <tr key={campaign.id}><td className="px-5 py-3 font-medium text-[#174f6f]">{campaign.name}</td><td className="px-5 py-3 text-[#617782]">{campaign.origin || "Não informada"}</td><td className="px-5 py-3 text-[#617782]">{dateFormatter.format(new Date(`${campaign.startDate}T12:00:00`))}{campaign.endDate ? ` até ${dateFormatter.format(new Date(`${campaign.endDate}T12:00:00`))}` : " em diante"}</td><td className="px-5 py-3 text-right text-[#486a7b]">{currencyFormatter.format(Number(campaign.weeklyGoal))}</td><td className="px-5 py-3 text-right font-semibold text-[#2e7da3]">{currencyFormatter.format(summary?.total ?? 0)}</td></tr>; })}</tbody></table></div></CardContent></Card>}
+      {campaigns.length > 0 && <Card className="overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-base text-[#174f6f]">Campanhas inscritas</CardTitle><p className="text-xs text-[#84949c]">Exibindo até 5 campanhas por página.</p></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[820px] text-sm"><thead><tr className="border-y border-[#e5edf1] bg-[#f7fafb] text-left text-xs uppercase tracking-wide text-[#6e7f88]"><th className="px-5 py-3">Campanha</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Período</th><th className="px-5 py-3 text-right">Meta semanal</th><th className="px-5 py-3 text-right">Valor no mês</th></tr></thead><tbody className="divide-y divide-[#edf2f4]">{paginatedCampaigns.items.map(campaign => { const summary = totals.find(item => item.id === campaign.id); return <tr key={campaign.id}><td className="px-5 py-3 font-medium text-[#174f6f]">{campaign.name}</td><td className="px-5 py-3 text-[#617782]">{campaign.origin || "Não informada"}</td><td className="px-5 py-3 text-[#617782]">{dateFormatter.format(new Date(`${campaign.startDate}T12:00:00`))}{campaign.endDate ? ` até ${dateFormatter.format(new Date(`${campaign.endDate}T12:00:00`))}` : " em diante"}</td><td className="px-5 py-3 text-right text-[#486a7b]">{currencyFormatter.format(Number(campaign.weeklyGoal))}</td><td className="px-5 py-3 text-right font-semibold text-[#2e7da3]">{currencyFormatter.format(summary?.total ?? 0)}</td></tr>; })}</tbody></table></div><TablePagination page={paginatedCampaigns.page} totalItems={paginatedCampaigns.totalItems} label="campanhas" onPageChange={setCampaignPage} /></CardContent></Card>}
     </>}
   </div></div></DashboardLayout>;
 }
