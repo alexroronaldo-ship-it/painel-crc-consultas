@@ -34,3 +34,15 @@ export const closures = mysqlTable("closures", {
 
 export type Closure = typeof closures.$inferSelect;
 export type InsertClosure = typeof closures.$inferInsert;
+
+export const valSales = mysqlTable("val_sales", {
+  id: int("id").autoincrement().primaryKey(),
+  saleDate: varchar("saleDate", { length: 10 }).notNull(),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ValSale = typeof valSales.$inferSelect;
+export type InsertValSale = typeof valSales.$inferInsert;

@@ -3,9 +3,9 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createClosure, deleteAllClosures, deleteClosure, listClosures } from "./db";
+import { createClosure, createValSale, deleteAllClosures, deleteClosure, deleteValSale, listClosures, listValSales } from "./db";
 
-const crcNames = ["VAL", "WISLLAYNI", "JAYZA"] as const;
+const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 
 export const appRouter = router({
   system: systemRouter,
@@ -51,6 +51,26 @@ export const appRouter = router({
       await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
       return { success: true } as const;
     }),
+  }),
+  valSales: router({
+    list: protectedProcedure
+      .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/).optional() }).optional())
+      .query(({ input }) => listValSales(input?.month)),
+    create: protectedProcedure.input(z.object({
+      saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda"),
+      value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
+      notes: z.string().trim().max(1000).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      await createValSale({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      return { success: true } as const;
+    }),
+    deleteOne: protectedProcedure
+      .input(z.object({ id: z.number().int().positive(), password: z.string() }))
+      .mutation(async ({ input }) => {
+        if (input.password !== "0000") throw new Error("Senha provisória incorreta");
+        await deleteValSale(input.id);
+        return { success: true } as const;
+      }),
   }),
 });
 

@@ -1,18 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const { createClosure, deleteAllClosures, deleteClosure, listClosures } = vi.hoisted(() => ({
+const { createClosure, createValSale, deleteAllClosures, deleteClosure, deleteValSale, listClosures, listValSales } = vi.hoisted(() => ({
   createClosure: vi.fn(),
+  createValSale: vi.fn(),
   deleteAllClosures: vi.fn(),
   deleteClosure: vi.fn(),
+  deleteValSale: vi.fn(),
   listClosures: vi.fn().mockResolvedValue([]),
+  listValSales: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("./db", () => ({
   createClosure,
+  createValSale,
   listClosures,
+  listValSales,
   deleteAllClosures,
   deleteClosure,
+  deleteValSale,
 }));
 
 import { appRouter } from "./routers";
@@ -61,7 +67,7 @@ describe("closures protected deletion", () => {
     expect(listClosures).toHaveBeenCalledWith("2026-09");
   });
 
-  it("accepts Val as a CRC name", async () => {
+  it("rejects Val as a closure CRC to keep her sales separate", async () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.closures.create({
       crcName: "VAL",
@@ -73,7 +79,24 @@ describe("closures protected deletion", () => {
       totalTimeSeconds: 90,
       internalStatus: "closed",
       internalClosingDate: "2026-09-18",
-    })).resolves.toEqual({ success: true });
-    expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ crcName: "VAL", value: "1000.00" }));
+    } as Parameters<typeof caller.closures.create>[0])).rejects.toThrow();
+    expect(createClosure).not.toHaveBeenCalled();
+  });
+
+  it("creates and lists Val sales in the independent data source", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.valSales.list({ month: "2026-09" })).resolves.toEqual([]);
+    expect(listValSales).toHaveBeenCalledWith("2026-09");
+
+    await expect(caller.valSales.create({ saleDate: "2026-09-19", value: "2500,50", notes: "Venda própria" })).resolves.toEqual({ success: true });
+    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", notes: "Venda própria" }));
+  });
+
+  it("protects deletion of a Val sale with the provisional password", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.valSales.deleteOne({ id: 9, password: "1234" })).rejects.toThrow("Senha provisória incorreta");
+    expect(deleteValSale).not.toHaveBeenCalled();
+    await expect(caller.valSales.deleteOne({ id: 9, password: "0000" })).resolves.toEqual({ success: true });
+    expect(deleteValSale).toHaveBeenCalledWith(9);
   });
 });

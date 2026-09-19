@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { closures, InsertClosure, InsertUser, users } from "../drizzle/schema";
+import { closures, InsertClosure, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -73,4 +73,36 @@ export async function deleteClosure(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.delete(closures).where(eq(closures.id, id));
+}
+
+export async function listValSales(month?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (!month) {
+    return db.select().from(valSales).orderBy(desc(valSales.saleDate), desc(valSales.createdAt)).limit(500);
+  }
+
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextMonth = monthNumber === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+
+  return db
+    .select()
+    .from(valSales)
+    .where(and(gte(valSales.saleDate, `${month}-01`), lt(valSales.saleDate, `${nextMonth}-01`)))
+    .orderBy(desc(valSales.saleDate), desc(valSales.createdAt))
+    .limit(500);
+}
+
+export async function createValSale(input: InsertValSale) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(valSales).values(input);
+}
+
+export async function deleteValSale(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(valSales).where(eq(valSales.id, id));
 }
