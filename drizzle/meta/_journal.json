@@ -50,6 +50,13 @@
       "when": 1789830695102,
       "tag": "0006_nosy_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1789831183688,
+      "tag": "0007_married_gunslinger",
+      "breakpoints": true
     }
   ]
 }

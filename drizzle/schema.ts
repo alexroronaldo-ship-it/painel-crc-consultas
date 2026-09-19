@@ -18,6 +18,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const campaigns = mysqlTable("campaigns", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
+  origin: varchar("origin", { length: 160 }),
   startDate: varchar("startDate", { length: 10 }).notNull(),
   endDate: varchar("endDate", { length: 10 }),
   weeklyGoal: decimal("weeklyGoal", { precision: 12, scale: 2 }).notNull().default("37500.00"),
@@ -42,6 +43,7 @@ export const closures = mysqlTable("closures", {
   nextStep: text("nextStep"),
   internalClosingDate: varchar("internalClosingDate", { length: 10 }),
   campaignId: int("campaignId"),
+  leadOrigin: varchar("leadOrigin", { length: 160 }),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

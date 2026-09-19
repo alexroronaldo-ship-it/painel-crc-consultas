@@ -47,6 +47,7 @@ export const appRouter = router({
       nextStep: z.string().trim().max(500).optional(),
       internalClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento interno"),
       campaignId: z.number().int().positive().optional(),
+      leadOrigin: z.string().trim().min(2, "Informe a origem do lead").max(160),
     })).mutation(async ({ ctx, input }) => {
       await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
       return { success: true } as const;
@@ -56,6 +57,7 @@ export const appRouter = router({
     list: protectedProcedure.query(() => listCampaigns()),
     create: protectedProcedure.input(z.object({
       name: z.string().trim().min(2, "Informe o nome da campanha").max(160),
+      origin: z.string().trim().min(2, "Informe a origem da campanha").max(160),
       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de início"),
       endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data final válida").optional(),
       weeklyGoal: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe uma meta semanal válida"),

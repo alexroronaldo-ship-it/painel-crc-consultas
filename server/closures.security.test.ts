@@ -84,12 +84,14 @@ describe("closures protected deletion", () => {
 
     await expect(caller.campaigns.create({
       name: "Implante de setembro",
+      origin: "Instagram",
       startDate: "2026-09-01",
       endDate: "2026-09-30",
       weeklyGoal: "37500,00",
     })).resolves.toEqual({ success: true });
     expect(createCampaign).toHaveBeenCalledWith(expect.objectContaining({
       name: "Implante de setembro",
+      origin: "Instagram",
       weeklyGoal: "37500.00",
       createdBy: 1,
     }));
@@ -99,6 +101,7 @@ describe("closures protected deletion", () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.campaigns.create({
       name: "Campanha inválida",
+      origin: "Google",
       startDate: "2026-09-30",
       endDate: "2026-09-01",
       weeklyGoal: "37500",
@@ -119,8 +122,9 @@ describe("closures protected deletion", () => {
       internalStatus: "closed",
       internalClosingDate: "2026-09-18",
       campaignId: 4,
+      leadOrigin: "Instagram",
     })).resolves.toEqual({ success: true });
-    expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 4, value: "8100.00" }));
+    expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 4, leadOrigin: "Instagram", value: "8100.00" }));
   });
 
   it("rejects Val as a closure CRC to keep her sales separate", async () => {
@@ -135,6 +139,7 @@ describe("closures protected deletion", () => {
       totalTimeSeconds: 90,
       internalStatus: "closed",
       internalClosingDate: "2026-09-18",
+      leadOrigin: "Indicação",
     } as Parameters<typeof caller.closures.create>[0])).rejects.toThrow();
     expect(createClosure).not.toHaveBeenCalled();
   });
