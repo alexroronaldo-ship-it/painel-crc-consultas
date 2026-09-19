@@ -43,6 +43,13 @@
       "when": 1789816909094,
       "tag": "0005_stale_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1789830695102,
+      "tag": "0006_nosy_northstar",
+      "breakpoints": true
     }
   ]
 }

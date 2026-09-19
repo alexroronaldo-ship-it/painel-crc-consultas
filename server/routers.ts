@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createClosure, createValSale, deleteClosure, deleteValSale, listClosures, listValSales, updateClosureTime } from "./db";
+import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listValSales, updateClosureTime } from "./db";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 
@@ -46,8 +46,22 @@ export const appRouter = router({
       internalNotes: z.string().trim().max(5000).optional(),
       nextStep: z.string().trim().max(500).optional(),
       internalClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento interno"),
+      campaignId: z.number().int().positive().optional(),
     })).mutation(async ({ ctx, input }) => {
       await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      return { success: true } as const;
+    }),
+  }),
+  campaigns: router({
+    list: protectedProcedure.query(() => listCampaigns()),
+    create: protectedProcedure.input(z.object({
+      name: z.string().trim().min(2, "Informe o nome da campanha").max(160),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de início"),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data final válida").optional(),
+      weeklyGoal: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe uma meta semanal válida"),
+    })).mutation(async ({ ctx, input }) => {
+      if (input.endDate && input.endDate < input.startDate) throw new Error("A data final deve ser igual ou posterior à data inicial");
+      await createCampaign({ ...input, weeklyGoal: input.weeklyGoal.replace(",", "."), createdBy: ctx.user.id });
       return { success: true } as const;
     }),
   }),

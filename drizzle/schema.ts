@@ -15,6 +15,19 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+export const campaigns = mysqlTable("campaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  startDate: varchar("startDate", { length: 10 }).notNull(),
+  endDate: varchar("endDate", { length: 10 }),
+  weeklyGoal: decimal("weeklyGoal", { precision: 12, scale: 2 }).notNull().default("37500.00"),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Campaign = typeof campaigns.$inferSelect;
+export type InsertCampaign = typeof campaigns.$inferInsert;
+
 export const closures = mysqlTable("closures", {
   id: int("id").autoincrement().primaryKey(),
   crcName: varchar("crcName", { length: 32 }).notNull(),
@@ -28,6 +41,7 @@ export const closures = mysqlTable("closures", {
   internalNotes: text("internalNotes"),
   nextStep: text("nextStep"),
   internalClosingDate: varchar("internalClosingDate", { length: 10 }),
+  campaignId: int("campaignId"),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { closures, InsertClosure, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
+import { campaigns, closures, InsertCampaign, InsertClosure, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -73,6 +73,18 @@ export async function updateClosureTime(id: number, totalTimeSeconds: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(closures).set({ totalTimeSeconds }).where(eq(closures.id, id));
+}
+
+export async function listCampaigns() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(campaigns).orderBy(desc(campaigns.startDate), desc(campaigns.createdAt)).limit(200);
+}
+
+export async function createCampaign(input: InsertCampaign) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(campaigns).values(input);
 }
 
 export async function listValSales(month?: string) {
