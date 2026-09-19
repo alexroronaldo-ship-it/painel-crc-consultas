@@ -45,9 +45,9 @@ export const appRouter = router({
       internalStatus: z.enum(["closed", "follow_up", "not_closed"]),
       internalNotes: z.string().trim().max(5000).optional(),
       nextStep: z.string().trim().max(500).optional(),
-      internalClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento interno"),
+      internalClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data interna válida").optional(),
       campaignId: z.number().int().positive().optional(),
-      leadOrigin: z.string().trim().min(2, "Informe a origem do lead").max(160),
+      leadOrigin: z.string().trim().min(2, "Informe a origem do lead").max(160).optional(),
     })).mutation(async ({ ctx, input }) => {
       await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
       return { success: true } as const;

@@ -109,7 +109,7 @@ describe("closures protected deletion", () => {
     expect(createCampaign).not.toHaveBeenCalled();
   });
 
-  it("links a closure to the selected campaign", async () => {
+  it("links a simplified closure to the selected campaign", async () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.closures.create({
       crcName: "WISLLAYNI",
@@ -120,11 +120,9 @@ describe("closures protected deletion", () => {
       value: "8100,00",
       totalTimeSeconds: 90,
       internalStatus: "closed",
-      internalClosingDate: "2026-09-18",
       campaignId: 4,
-      leadOrigin: "Instagram",
     })).resolves.toEqual({ success: true });
-    expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 4, leadOrigin: "Instagram", value: "8100.00" }));
+    expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 4, value: "8100.00" }));
   });
 
   it("rejects Val as a closure CRC to keep her sales separate", async () => {
@@ -138,8 +136,6 @@ describe("closures protected deletion", () => {
       value: "1000,00",
       totalTimeSeconds: 90,
       internalStatus: "closed",
-      internalClosingDate: "2026-09-18",
-      leadOrigin: "Indicação",
     } as Parameters<typeof caller.closures.create>[0])).rejects.toThrow();
     expect(createClosure).not.toHaveBeenCalled();
   });
