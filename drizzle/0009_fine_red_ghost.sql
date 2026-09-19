@@ -1,0 +1,1 @@
+ALTER TABLE `crc_weekly_activities` ADD `taskCount` int DEFAULT 0 NOT NULL;

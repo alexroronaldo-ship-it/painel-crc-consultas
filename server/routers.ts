@@ -61,6 +61,7 @@ export const appRouter = router({
       crcName: z.enum(crcNames),
       month: z.string().regex(/^\d{4}-\d{2}$/),
       week: z.number().int().min(1).max(5),
+      taskCount: z.number().int().min(0).max(100000),
       description: z.string().trim().min(2, "Descreva as tarefas realizadas").max(5000),
     })).mutation(async ({ ctx, input }) => {
       await saveCrcWeeklyActivity({ ...input, createdBy: ctx.user.id });

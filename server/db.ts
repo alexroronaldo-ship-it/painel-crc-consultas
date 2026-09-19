@@ -90,6 +90,7 @@ export async function saveCrcWeeklyActivity(input: InsertCrcWeeklyActivity) {
   if (!db) throw new Error("Database is not available");
   await db.insert(crcWeeklyActivities).values(input).onDuplicateKeyUpdate({
     set: {
+      taskCount: input.taskCount,
       description: input.description,
       createdBy: input.createdBy,
       updatedAt: new Date(),

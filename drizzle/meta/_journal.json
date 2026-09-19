@@ -64,6 +64,13 @@
       "when": 1789841732615,
       "tag": "0008_sloppy_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1789842498331,
+      "tag": "0009_fine_red_ghost",
+      "breakpoints": true
     }
   ]
 }

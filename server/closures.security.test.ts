@@ -90,12 +90,14 @@ describe("closures protected deletion", () => {
       crcName: "WISLLAYNI",
       month: "2026-09",
       week: 5,
+      taskCount: 120,
       description: "Retornos, contatos e atualização da agenda",
     })).resolves.toEqual({ success: true });
     expect(saveCrcWeeklyActivity).toHaveBeenCalledWith(expect.objectContaining({
       crcName: "WISLLAYNI",
       month: "2026-09",
       week: 5,
+      taskCount: 120,
       createdBy: 1,
     }));
   });
@@ -106,6 +108,7 @@ describe("closures protected deletion", () => {
       crcName: "JAYZA",
       month: "2026-09",
       week: 6,
+      taskCount: 100,
       description: "Atividade inválida",
     })).rejects.toThrow();
     expect(saveCrcWeeklyActivity).not.toHaveBeenCalled();

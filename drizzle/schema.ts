@@ -56,6 +56,7 @@ export const crcWeeklyActivities = mysqlTable("crc_weekly_activities", {
   crcName: varchar("crcName", { length: 32 }).notNull(),
   month: varchar("month", { length: 7 }).notNull(),
   week: int("week").notNull(),
+  taskCount: int("taskCount").notNull().default(0),
   description: text("description").notNull(),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
