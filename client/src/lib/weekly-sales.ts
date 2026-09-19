@@ -24,7 +24,7 @@ export function calculateWeeklyGoal(total: number, goal = WEEKLY_SALES_GOAL) {
 
 export function getWeekOfMonthByDate(date: string) {
   const day = Number(date.slice(8, 10));
-  return Math.min(4, Math.max(1, Math.floor((day - 1) / 7) + 1));
+  return Math.min(5, Math.max(1, Math.floor((day - 1) / 7) + 1));
 }
 
 export function calculateWeeklySales(records: SaleRecord[], month: string): WeeklySale[] {
@@ -35,7 +35,8 @@ export function calculateWeeklySales(records: SaleRecord[], month: string): Week
     [1, 7],
     [8, 14],
     [15, 21],
-    [22, lastDay],
+    [22, 28],
+    [29, lastDay],
   ] as const;
 
   return periods.map(([start, end], index) => {
@@ -44,7 +45,7 @@ export function calculateWeeklySales(records: SaleRecord[], month: string): Week
     return {
       week,
       label: `S${week}`,
-      period: `${String(start).padStart(2, "0")}–${String(end).padStart(2, "0")}/${monthLabel}`,
+      period: start > lastDay ? "Sem dias no mês" : `${String(start).padStart(2, "0")}–${String(end).padStart(2, "0")}/${monthLabel}`,
       total: own.reduce((sum, record) => sum + Number(record.value), 0),
       count: own.length,
     };

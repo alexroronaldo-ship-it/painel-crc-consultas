@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listValSales, updateClosureTime } from "./db";
+import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcWeeklyActivities, listValSales, saveCrcWeeklyActivity, updateClosureTime } from "./db";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 
@@ -50,6 +50,20 @@ export const appRouter = router({
       leadOrigin: z.string().trim().min(2, "Informe a origem do lead").max(160).optional(),
     })).mutation(async ({ ctx, input }) => {
       await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      return { success: true } as const;
+    }),
+  }),
+  weeklyActivities: router({
+    list: protectedProcedure
+      .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) }))
+      .query(({ input }) => listCrcWeeklyActivities(input.month)),
+    save: protectedProcedure.input(z.object({
+      crcName: z.enum(crcNames),
+      month: z.string().regex(/^\d{4}-\d{2}$/),
+      week: z.number().int().min(1).max(5),
+      description: z.string().trim().min(2, "Descreva as tarefas realizadas").max(5000),
+    })).mutation(async ({ ctx, input }) => {
+      await saveCrcWeeklyActivity({ ...input, createdBy: ctx.user.id });
       return { success: true } as const;
     }),
   }),

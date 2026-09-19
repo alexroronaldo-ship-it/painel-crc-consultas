@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listValSales, updateClosureTime } = vi.hoisted(() => ({
+const { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcWeeklyActivities, listValSales, saveCrcWeeklyActivity, updateClosureTime } = vi.hoisted(() => ({
   createCampaign: vi.fn(),
   createClosure: vi.fn(),
   createValSale: vi.fn(),
@@ -9,7 +9,9 @@ const { createCampaign, createClosure, createValSale, deleteClosure, deleteValSa
   deleteValSale: vi.fn(),
   listCampaigns: vi.fn().mockResolvedValue([]),
   listClosures: vi.fn().mockResolvedValue([]),
+  listCrcWeeklyActivities: vi.fn().mockResolvedValue([]),
   listValSales: vi.fn().mockResolvedValue([]),
+  saveCrcWeeklyActivity: vi.fn(),
   updateClosureTime: vi.fn(),
 }));
 
@@ -19,9 +21,11 @@ vi.mock("./db", () => ({
   createValSale,
   listClosures,
   listCampaigns,
+  listCrcWeeklyActivities,
   listValSales,
   deleteClosure,
   deleteValSale,
+  saveCrcWeeklyActivity,
   updateClosureTime,
 }));
 
@@ -75,6 +79,36 @@ describe("closures protected deletion", () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.closures.list({ month: "2026-09" })).resolves.toEqual([]);
     expect(listClosures).toHaveBeenCalledWith("2026-09");
+  });
+
+  it("lists and saves one weekly activity for the selected CRC", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.weeklyActivities.list({ month: "2026-09" })).resolves.toEqual([]);
+    expect(listCrcWeeklyActivities).toHaveBeenCalledWith("2026-09");
+
+    await expect(caller.weeklyActivities.save({
+      crcName: "WISLLAYNI",
+      month: "2026-09",
+      week: 5,
+      description: "Retornos, contatos e atualização da agenda",
+    })).resolves.toEqual({ success: true });
+    expect(saveCrcWeeklyActivity).toHaveBeenCalledWith(expect.objectContaining({
+      crcName: "WISLLAYNI",
+      month: "2026-09",
+      week: 5,
+      createdBy: 1,
+    }));
+  });
+
+  it("rejects a weekly activity outside S1 to S5", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.weeklyActivities.save({
+      crcName: "JAYZA",
+      month: "2026-09",
+      week: 6,
+      description: "Atividade inválida",
+    })).rejects.toThrow();
+    expect(saveCrcWeeklyActivity).not.toHaveBeenCalled();
   });
 
   it("creates and lists campaigns with a weekly goal", async () => {

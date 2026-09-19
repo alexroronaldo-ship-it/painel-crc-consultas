@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { campaigns, closures, InsertCampaign, InsertClosure, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
+import { campaigns, closures, crcWeeklyActivities, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -73,6 +73,28 @@ export async function updateClosureTime(id: number, totalTimeSeconds: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(closures).set({ totalTimeSeconds }).where(eq(closures.id, id));
+}
+
+export async function listCrcWeeklyActivities(month: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(crcWeeklyActivities)
+    .where(eq(crcWeeklyActivities.month, month))
+    .orderBy(crcWeeklyActivities.crcName, crcWeeklyActivities.week);
+}
+
+export async function saveCrcWeeklyActivity(input: InsertCrcWeeklyActivity) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(crcWeeklyActivities).values(input).onDuplicateKeyUpdate({
+    set: {
+      description: input.description,
+      createdBy: input.createdBy,
+      updatedAt: new Date(),
+    },
+  });
 }
 
 export async function listCampaigns() {

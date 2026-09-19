@@ -25,7 +25,7 @@ describe("campaign metrics", () => {
 
   it("uses only the selected campaign in the weekly graph", () => {
     const weeks = calculateCampaignWeeks(1, records, "2026-09");
-    expect(weeks.map(week => week.total)).toEqual([8100, 12000, 0, 0]);
+    expect(weeks.map(week => week.total)).toEqual([8100, 12000, 0, 0, 0]);
     expect(weeks.reduce((sum, week) => sum + week.total, 0)).toBe(20100);
   });
 });

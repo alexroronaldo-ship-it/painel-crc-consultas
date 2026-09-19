@@ -1,4 +1,4 @@
-import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -50,6 +50,22 @@ export const closures = mysqlTable("closures", {
 
 export type Closure = typeof closures.$inferSelect;
 export type InsertClosure = typeof closures.$inferInsert;
+
+export const crcWeeklyActivities = mysqlTable("crc_weekly_activities", {
+  id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
+  month: varchar("month", { length: 7 }).notNull(),
+  week: int("week").notNull(),
+  description: text("description").notNull(),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("crc_weekly_activities_crc_month_week_unique").on(table.crcName, table.month, table.week),
+]);
+
+export type CrcWeeklyActivity = typeof crcWeeklyActivities.$inferSelect;
+export type InsertCrcWeeklyActivity = typeof crcWeeklyActivities.$inferInsert;
 
 export const valSales = mysqlTable("val_sales", {
   id: int("id").autoincrement().primaryKey(),
