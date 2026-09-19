@@ -11,6 +11,17 @@ export type WeeklySale = {
   count: number;
 };
 
+export const WEEKLY_SALES_GOAL = 37500;
+
+export function calculateWeeklyGoal(total: number, goal = WEEKLY_SALES_GOAL) {
+  return {
+    reached: total >= goal,
+    remaining: Math.max(0, goal - total),
+    surplus: Math.max(0, total - goal),
+    progressPercent: Math.min(100, (total / goal) * 100),
+  };
+}
+
 export function getWeekOfMonthByDate(date: string) {
   const day = Number(date.slice(8, 10));
   return Math.min(4, Math.max(1, Math.floor((day - 1) / 7) + 1));

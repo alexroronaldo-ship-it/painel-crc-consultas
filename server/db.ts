@@ -63,16 +63,16 @@ export async function createClosure(input: InsertClosure) {
   await db.insert(closures).values(input);
 }
 
-export async function deleteAllClosures() {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  await db.delete(closures);
-}
-
 export async function deleteClosure(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.delete(closures).where(eq(closures.id, id));
+}
+
+export async function updateClosureTime(id: number, totalTimeSeconds: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(closures).set({ totalTimeSeconds }).where(eq(closures.id, id));
 }
 
 export async function listValSales(month?: string) {

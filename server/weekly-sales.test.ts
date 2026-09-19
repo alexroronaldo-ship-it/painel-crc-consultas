@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateWeeklySales, getWeekOfMonthByDate } from "../client/src/lib/weekly-sales";
+import { calculateWeeklyGoal, calculateWeeklySales, getWeekOfMonthByDate, WEEKLY_SALES_GOAL } from "../client/src/lib/weekly-sales";
 
 describe("weekly team sales", () => {
   it("groups days into four monthly periods", () => {
@@ -20,5 +20,11 @@ describe("weekly team sales", () => {
     expect(weeks.map(week => week.total)).toEqual([8100, 12000, 18000, 17680]);
     expect(weeks.reduce((sum, week) => sum + week.total, 0)).toBe(55780);
     expect(weeks.map(week => week.period)).toEqual(["01–07/09", "08–14/09", "15–21/09", "22–30/09"]);
+  });
+
+  it("uses R$ 37,500 as the goal for every week", () => {
+    expect(WEEKLY_SALES_GOAL).toBe(37500);
+    expect(calculateWeeklyGoal(33020)).toEqual({ reached: false, remaining: 4480, surplus: 0, progressPercent: 88.05333333333333 });
+    expect(calculateWeeklyGoal(40000)).toEqual({ reached: true, remaining: 0, surplus: 2500, progressPercent: 100 });
   });
 });

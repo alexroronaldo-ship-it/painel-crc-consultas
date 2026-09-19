@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const { createClosure, createValSale, deleteAllClosures, deleteClosure, deleteValSale, listClosures, listValSales } = vi.hoisted(() => ({
+const { createClosure, createValSale, deleteClosure, deleteValSale, listClosures, listValSales, updateClosureTime } = vi.hoisted(() => ({
   createClosure: vi.fn(),
   createValSale: vi.fn(),
-  deleteAllClosures: vi.fn(),
   deleteClosure: vi.fn(),
   deleteValSale: vi.fn(),
   listClosures: vi.fn().mockResolvedValue([]),
   listValSales: vi.fn().mockResolvedValue([]),
+  updateClosureTime: vi.fn(),
 }));
 
 vi.mock("./db", () => ({
@@ -16,9 +16,9 @@ vi.mock("./db", () => ({
   createValSale,
   listClosures,
   listValSales,
-  deleteAllClosures,
   deleteClosure,
   deleteValSale,
+  updateClosureTime,
 }));
 
 import { appRouter } from "./routers";
@@ -55,10 +55,16 @@ describe("closures protected deletion", () => {
     expect(deleteClosure).toHaveBeenCalledWith(7);
   });
 
-  it("clears all records only with the provisional password", async () => {
+  it("updates the time of only the selected closure", async () => {
     const caller = appRouter.createCaller(createContext());
-    await expect(caller.closures.clearTestData({ password: "0000" })).resolves.toEqual({ success: true });
-    expect(deleteAllClosures).toHaveBeenCalledTimes(1);
+    await expect(caller.closures.updateTime({ id: 7, totalTimeSeconds: 95 })).resolves.toEqual({ success: true });
+    expect(updateClosureTime).toHaveBeenCalledWith(7, 95);
+  });
+
+  it("rejects invalid time values", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.closures.updateTime({ id: 7, totalTimeSeconds: -1 })).rejects.toThrow();
+    expect(updateClosureTime).not.toHaveBeenCalled();
   });
 
   it("forwards the selected month to the dashboard query", async () => {
