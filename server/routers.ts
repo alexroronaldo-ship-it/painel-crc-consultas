@@ -3,9 +3,10 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcWeeklyActivities, listValSales, saveCrcWeeklyActivity, updateClosureTime } from "./db";
+import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateClosureTime } from "./db";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
+const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
 
 export const appRouter = router({
   system: systemRouter,
@@ -58,13 +59,28 @@ export const appRouter = router({
       .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) }))
       .query(({ input }) => listCrcWeeklyActivities(input.month)),
     save: protectedProcedure.input(z.object({
-      crcName: z.enum(crcNames),
+      crcName: z.enum(weeklyActivityNames),
       month: z.string().regex(/^\d{4}-\d{2}$/),
       week: z.number().int().min(1).max(5),
       taskCount: z.number().int().min(0).max(100000),
       description: z.string().trim().min(2, "Descreva as tarefas realizadas").max(5000),
     })).mutation(async ({ ctx, input }) => {
       await saveCrcWeeklyActivity({ ...input, createdBy: ctx.user.id });
+      return { success: true } as const;
+    }),
+  }),
+  weeklyAppointments: router({
+    list: protectedProcedure
+      .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) }))
+      .query(({ input }) => listCrcWeeklyAppointments(input.month)),
+    save: protectedProcedure.input(z.object({
+      crcName: z.enum(crcNames),
+      month: z.string().regex(/^\d{4}-\d{2}$/),
+      week: z.number().int().min(1).max(5),
+      appointmentCount: z.number().int().min(0).max(100000),
+      weeklyGoal: z.number().int().min(1).max(100000),
+    })).mutation(async ({ ctx, input }) => {
+      await saveCrcWeeklyAppointment({ ...input, createdBy: ctx.user.id });
       return { success: true } as const;
     }),
   }),

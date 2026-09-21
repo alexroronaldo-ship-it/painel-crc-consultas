@@ -71,6 +71,13 @@
       "when": 1789842498331,
       "tag": "0009_fine_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1790030069197,
+      "tag": "0010_rare_guardian",
+      "breakpoints": true
     }
   ]
 }

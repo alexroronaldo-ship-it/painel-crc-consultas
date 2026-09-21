@@ -68,6 +68,23 @@ export const crcWeeklyActivities = mysqlTable("crc_weekly_activities", {
 export type CrcWeeklyActivity = typeof crcWeeklyActivities.$inferSelect;
 export type InsertCrcWeeklyActivity = typeof crcWeeklyActivities.$inferInsert;
 
+export const crcWeeklyAppointments = mysqlTable("crc_weekly_appointments", {
+  id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
+  month: varchar("month", { length: 7 }).notNull(),
+  week: int("week").notNull(),
+  appointmentCount: int("appointmentCount").notNull().default(0),
+  weeklyGoal: int("weeklyGoal").notNull().default(1),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("crc_weekly_appointments_crc_month_week_unique").on(table.crcName, table.month, table.week),
+]);
+
+export type CrcWeeklyAppointment = typeof crcWeeklyAppointments.$inferSelect;
+export type InsertCrcWeeklyAppointment = typeof crcWeeklyAppointments.$inferInsert;
+
 export const valSales = mysqlTable("val_sales", {
   id: int("id").autoincrement().primaryKey(),
   saleDate: varchar("saleDate", { length: 10 }).notNull(),
