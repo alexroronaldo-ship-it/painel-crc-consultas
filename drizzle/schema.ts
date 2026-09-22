@@ -89,6 +89,7 @@ export const valSales = mysqlTable("val_sales", {
   id: int("id").autoincrement().primaryKey(),
   saleDate: varchar("saleDate", { length: 10 }).notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
   insurancePlan: varchar("insurancePlan", { length: 40 }),
   notes: text("notes"),
   createdBy: int("createdBy").notNull(),

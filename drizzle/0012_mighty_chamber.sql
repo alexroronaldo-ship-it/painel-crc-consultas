@@ -1,0 +1,1 @@
+ALTER TABLE `val_sales` ADD `totalTimeSeconds` int DEFAULT 0 NOT NULL;

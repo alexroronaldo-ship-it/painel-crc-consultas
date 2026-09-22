@@ -149,6 +149,15 @@ describe("closures protected deletion", () => {
       weeklyGoal: 50,
       createdBy: 1,
     }));
+
+    await expect(caller.weeklyAppointments.save({
+      crcName: "VAL",
+      month: "2026-09",
+      week: 4,
+      appointmentCount: 35,
+      weeklyGoal: 40,
+    })).resolves.toEqual({ success: true });
+    expect(saveCrcWeeklyAppointment).toHaveBeenCalledWith(expect.objectContaining({ crcName: "VAL", week: 4, appointmentCount: 35, weeklyGoal: 40 }));
   });
 
   it("creates and lists campaigns with a weekly goal", async () => {
@@ -219,8 +228,8 @@ describe("closures protected deletion", () => {
     await expect(caller.valSales.list({ month: "2026-09" })).resolves.toEqual([]);
     expect(listValSales).toHaveBeenCalledWith("2026-09");
 
-    await expect(caller.valSales.create({ saleDate: "2026-09-19", value: "2500,50", insurancePlan: "Rede Unna", notes: "Venda própria" })).resolves.toEqual({ success: true });
-    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", insurancePlan: "Rede Unna", notes: "Venda própria" }));
+    await expect(caller.valSales.create({ saleDate: "2026-09-19", value: "2500,50", totalTimeSeconds: 90, insurancePlan: "Rede Unna", notes: "Venda própria" })).resolves.toEqual({ success: true });
+    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", totalTimeSeconds: 90, insurancePlan: "Rede Unna", notes: "Venda própria" }));
   });
 
   it("rejects an insurance plan outside the Odontomab list", async () => {
@@ -228,6 +237,7 @@ describe("closures protected deletion", () => {
     await expect(caller.valSales.create({
       saleDate: "2026-09-19",
       value: "1000,00",
+      totalTimeSeconds: 90,
       insurancePlan: "Outro convênio",
     } as Parameters<typeof caller.valSales.create>[0])).rejects.toThrow();
     expect(createValSale).not.toHaveBeenCalled();

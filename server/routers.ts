@@ -75,7 +75,7 @@ export const appRouter = router({
       .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) }))
       .query(({ input }) => listCrcWeeklyAppointments(input.month)),
     save: protectedProcedure.input(z.object({
-      crcName: z.enum(crcNames),
+      crcName: z.enum(weeklyActivityNames),
       month: z.string().regex(/^\d{4}-\d{2}$/),
       week: z.number().int().min(1).max(5),
       appointmentCount: z.number().int().min(0).max(100000),
@@ -106,6 +106,7 @@ export const appRouter = router({
     create: protectedProcedure.input(z.object({
       saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda"),
       value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
+      totalTimeSeconds: z.number().int().min(0).max(86400),
       insurancePlan: z.enum(insurancePlans).optional(),
       notes: z.string().trim().max(1000).optional(),
     })).mutation(async ({ ctx, input }) => {

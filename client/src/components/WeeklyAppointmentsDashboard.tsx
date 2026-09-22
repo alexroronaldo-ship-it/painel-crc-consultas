@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 const weeks = [1, 2, 3, 4, 5] as const;
 
-type CrcName = "WISLLAYNI" | "JAYZA";
+type CrcName = "WISLLAYNI" | "JAYZA" | "VAL";
 
 export default function WeeklyAppointmentsDashboard({ month, crcName, displayName }: { month: string; crcName: CrcName; displayName: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
