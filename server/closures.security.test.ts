@@ -219,8 +219,18 @@ describe("closures protected deletion", () => {
     await expect(caller.valSales.list({ month: "2026-09" })).resolves.toEqual([]);
     expect(listValSales).toHaveBeenCalledWith("2026-09");
 
-    await expect(caller.valSales.create({ saleDate: "2026-09-19", value: "2500,50", notes: "Venda própria" })).resolves.toEqual({ success: true });
-    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", notes: "Venda própria" }));
+    await expect(caller.valSales.create({ saleDate: "2026-09-19", value: "2500,50", insurancePlan: "Rede Unna", notes: "Venda própria" })).resolves.toEqual({ success: true });
+    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", insurancePlan: "Rede Unna", notes: "Venda própria" }));
+  });
+
+  it("rejects an insurance plan outside the Odontomab list", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.valSales.create({
+      saleDate: "2026-09-19",
+      value: "1000,00",
+      insurancePlan: "Outro convênio",
+    } as Parameters<typeof caller.valSales.create>[0])).rejects.toThrow();
+    expect(createValSale).not.toHaveBeenCalled();
   });
 
   it("protects deletion of a Val sale with the provisional password", async () => {

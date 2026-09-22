@@ -7,6 +7,7 @@ import { createCampaign, createClosure, createValSale, deleteClosure, deleteValS
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
+const insurancePlans = ["Uniodonto", "Unimed", "Rede Unna", "Amil"] as const;
 
 export const appRouter = router({
   system: systemRouter,
@@ -105,6 +106,7 @@ export const appRouter = router({
     create: protectedProcedure.input(z.object({
       saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda"),
       value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
+      insurancePlan: z.enum(insurancePlans).optional(),
       notes: z.string().trim().max(1000).optional(),
     })).mutation(async ({ ctx, input }) => {
       await createValSale({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
