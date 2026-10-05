@@ -15,6 +15,17 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/** Uma foto profissional por CRC, independente do mês de apuração. */
+export const crcProfiles = mysqlTable("crc_profiles", {
+  crcName: varchar("crcName", { length: 32 }).primaryKey(),
+  photoKey: varchar("photoKey", { length: 512 }).notNull(),
+  photoUrl: varchar("photoUrl", { length: 768 }).notNull(),
+  updatedBy: int("updatedBy").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CrcProfile = typeof crcProfiles.$inferSelect;
+
 export const campaigns = mysqlTable("campaigns", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),

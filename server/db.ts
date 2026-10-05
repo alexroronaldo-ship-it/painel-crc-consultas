@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { campaigns, closures, crcWeeklyActivities, crcWeeklyAppointments, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertCrcWeeklyAppointment, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
+import { campaigns, closures, crcProfiles, crcWeeklyActivities, crcWeeklyAppointments, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertCrcWeeklyAppointment, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -35,6 +35,20 @@ export async function getUserByOpenId(openId: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function listCrcProfiles() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.select({ crcName: crcProfiles.crcName, photoUrl: crcProfiles.photoUrl }).from(crcProfiles);
+}
+
+export async function saveCrcPhoto(input: { crcName: "WISLLAYNI" | "JAYZA"; photoKey: string; photoUrl: string; updatedBy: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(crcProfiles).values(input).onDuplicateKeyUpdate({
+    set: { photoKey: input.photoKey, photoUrl: input.photoUrl, updatedBy: input.updatedBy, updatedAt: new Date() },
+  });
 }
 
 export async function listClosures(month?: string) {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateClosureTime } = vi.hoisted(() => ({
+const { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, storagePut, updateClosureTime } = vi.hoisted(() => ({
   createCampaign: vi.fn(),
   createClosure: vi.fn(),
   createValSale: vi.fn(),
@@ -9,11 +9,14 @@ const { createCampaign, createClosure, createValSale, deleteClosure, deleteValSa
   deleteValSale: vi.fn(),
   listCampaigns: vi.fn().mockResolvedValue([]),
   listClosures: vi.fn().mockResolvedValue([]),
+  listCrcProfiles: vi.fn().mockResolvedValue([]),
   listCrcWeeklyActivities: vi.fn().mockResolvedValue([]),
   listCrcWeeklyAppointments: vi.fn().mockResolvedValue([]),
   listValSales: vi.fn().mockResolvedValue([]),
   saveCrcWeeklyActivity: vi.fn(),
+  saveCrcPhoto: vi.fn(),
   saveCrcWeeklyAppointment: vi.fn(),
+  storagePut: vi.fn().mockResolvedValue({ key: "crc-profiles/wisllayni/portrait_1234.png", url: "/manus-storage/crc-profiles/wisllayni/portrait_1234.png" }),
   updateClosureTime: vi.fn(),
 }));
 
@@ -22,6 +25,7 @@ vi.mock("./db", () => ({
   createClosure,
   createValSale,
   listClosures,
+  listCrcProfiles,
   listCampaigns,
   listCrcWeeklyActivities,
   listCrcWeeklyAppointments,
@@ -29,9 +33,11 @@ vi.mock("./db", () => ({
   deleteClosure,
   deleteValSale,
   saveCrcWeeklyActivity,
+  saveCrcPhoto,
   saveCrcWeeklyAppointment,
   updateClosureTime,
 }));
+vi.mock("./storage", () => ({ storagePut }));
 
 import { appRouter } from "./routers";
 
@@ -54,6 +60,47 @@ function createContext(): TrpcContext {
 
 describe("closures protected deletion", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("lists CRC photos independently of the selected month", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.crcProfiles.list()).resolves.toEqual([]);
+    expect(listCrcProfiles).toHaveBeenCalledOnce();
+  });
+
+  it("uploads a validated photo only for its chosen CRC", async () => {
+    const caller = appRouter.createCaller(createContext());
+    const png = Buffer.from("89504e470d0a1a0a00000000", "hex").toString("base64");
+    await expect(caller.crcProfiles.uploadPhoto({ crcName: "WISLLAYNI", mimeType: "image/png", base64: png })).resolves.toEqual({
+      success: true,
+      photoUrl: "/manus-storage/crc-profiles/wisllayni/portrait_1234.png",
+    });
+    expect(storagePut).toHaveBeenCalledWith("crc-profiles/wisllayni/portrait.png", expect.any(Buffer), "image/png");
+    expect(saveCrcPhoto).toHaveBeenCalledWith(expect.objectContaining({ crcName: "WISLLAYNI", updatedBy: 1 }));
+    expect(saveCrcPhoto).not.toHaveBeenCalledWith(expect.objectContaining({ crcName: "JAYZA" }));
+
+    storagePut.mockResolvedValueOnce({ key: "crc-profiles/jayza/portrait_5678.png", url: "/manus-storage/crc-profiles/jayza/portrait_5678.png" });
+    await expect(caller.crcProfiles.uploadPhoto({ crcName: "JAYZA", mimeType: "image/png", base64: png })).resolves.toEqual({
+      success: true,
+      photoUrl: "/manus-storage/crc-profiles/jayza/portrait_5678.png",
+    });
+    expect(storagePut).toHaveBeenCalledWith("crc-profiles/jayza/portrait.png", expect.any(Buffer), "image/png");
+    expect(saveCrcPhoto).toHaveBeenCalledWith(expect.objectContaining({ crcName: "JAYZA", photoUrl: "/manus-storage/crc-profiles/jayza/portrait_5678.png" }));
+  });
+
+  it("rejects invalid image content and CRCs not eligible for photo upload", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.crcProfiles.uploadPhoto({ crcName: "JAYZA", mimeType: "image/png", base64: Buffer.from("not-a-png").toString("base64") })).rejects.toThrow("válida");
+    await expect(caller.crcProfiles.uploadPhoto({ crcName: "VAL", mimeType: "image/png", base64: "AAAA" } as Parameters<typeof caller.crcProfiles.uploadPhoto>[0])).rejects.toThrow();
+    expect(storagePut).not.toHaveBeenCalled();
+  });
+
+  it("only allows admins to upload CRC photos", async () => {
+    const context = createContext();
+    context.user!.role = "user";
+    const caller = appRouter.createCaller(context);
+    await expect(caller.crcProfiles.uploadPhoto({ crcName: "JAYZA", mimeType: "image/png", base64: Buffer.from("89504e470d0a1a0a", "hex").toString("base64") })).rejects.toThrow("Somente a gerência");
+    expect(storagePut).not.toHaveBeenCalled();
+  });
 
   it("rejects the wrong password without deleting one record", async () => {
     const caller = appRouter.createCaller(createContext());

@@ -1,9 +1,11 @@
 import { COOKIE_NAME } from "@shared/const";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateClosureTime } from "./db";
+import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateClosureTime } from "./db";
+import { storagePut } from "./storage";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
@@ -17,6 +19,26 @@ export const appRouter = router({
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
+    }),
+  }),
+  crcProfiles: router({
+    list: protectedProcedure.query(() => listCrcProfiles()),
+    uploadPhoto: protectedProcedure.input(z.object({
+      crcName: z.enum(crcNames),
+      mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+      base64: z.string().min(1).max(2_800_000).regex(/^[A-Za-z0-9+/]+={0,2}$/, "Arquivo inválido"),
+    })).mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Somente a gerência pode alterar fotos" });
+      const bytes = Buffer.from(input.base64, "base64");
+      if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new TRPCError({ code: "BAD_REQUEST", message: "A foto deve ter até 2 MB" });
+      const png = bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"));
+      const jpeg = bytes.subarray(0, 3).equals(Buffer.from("ffd8ff", "hex"));
+      const webp = bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP";
+      const extension = input.mimeType === "image/png" && png ? "png" : input.mimeType === "image/jpeg" && jpeg ? "jpg" : input.mimeType === "image/webp" && webp ? "webp" : null;
+      if (!extension) throw new TRPCError({ code: "BAD_REQUEST", message: "Use uma foto JPG, PNG ou WebP válida" });
+      const { key, url } = await storagePut(`crc-profiles/${input.crcName.toLowerCase()}/portrait.${extension}`, bytes, input.mimeType);
+      await saveCrcPhoto({ crcName: input.crcName, photoKey: key, photoUrl: url, updatedBy: ctx.user.id });
+      return { success: true, photoUrl: url } as const;
     }),
   }),
   closures: router({
