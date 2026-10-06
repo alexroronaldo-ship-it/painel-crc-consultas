@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { campaigns, closures, crcProfiles, crcWeeklyActivities, crcWeeklyAppointments, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertCrcWeeklyAppointment, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -43,7 +43,7 @@ export async function listCrcProfiles() {
   return db.select({ crcName: crcProfiles.crcName, photoUrl: crcProfiles.photoUrl }).from(crcProfiles);
 }
 
-export async function saveCrcPhoto(input: { crcName: "WISLLAYNI" | "JAYZA"; photoKey: string; photoUrl: string; updatedBy: number }) {
+export async function saveCrcPhoto(input: { crcName: "WISLLAYNI" | "JAYZA" | "VAL"; photoKey: string; photoUrl: string; updatedBy: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.insert(crcProfiles).values(input).onDuplicateKeyUpdate({
@@ -145,6 +145,47 @@ export async function createCampaign(input: InsertCampaign) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.insert(campaigns).values(input);
+}
+
+export async function updateCampaign(id: number, input: Pick<InsertCampaign, "name" | "origin" | "startDate" | "endDate" | "weeklyGoal">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.id, id)).limit(1);
+  if (!existing.length) throw new Error("Campanha não encontrada");
+  await db.update(campaigns).set(input).where(eq(campaigns.id, id));
+}
+
+export async function listCampaignUsage() {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select({ campaignId: closures.campaignId, count: sql<number>`count(*)` }).from(closures).groupBy(closures.campaignId);
+  return rows.filter(row => row.campaignId !== null).map(row => ({ campaignId: row.campaignId!, count: Number(row.count) }));
+}
+
+/** Recusa excluir campanhas com vendas; nenhuma venda é apagada implicitamente. */
+export async function deleteEmptyCampaign(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.transaction(async tx => {
+    const found = await tx.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.id, id)).limit(1);
+    if (!found.length) throw new Error("Campanha não encontrada");
+    const [linked] = await tx.select({ count: sql<number>`count(*)` }).from(closures).where(eq(closures.campaignId, id));
+    if (Number(linked?.count ?? 0) > 0) throw new Error("Esta campanha tem fechamentos: mescle-a com outra campanha antes de excluir");
+    await tx.delete(campaigns).where(eq(campaigns.id, id));
+  });
+}
+
+/** Move todos os vínculos antes de retirar a duplicata, em uma única transação. */
+export async function mergeCampaigns(sourceId: number, targetId: number) {
+  if (sourceId === targetId) throw new Error("Selecione uma campanha de destino diferente");
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.transaction(async tx => {
+    const found = await tx.select({ id: campaigns.id }).from(campaigns).where(inArray(campaigns.id, [sourceId, targetId]));
+    if (found.length !== 2) throw new Error("Campanha de origem ou destino não encontrada");
+    await tx.update(closures).set({ campaignId: targetId }).where(eq(closures.campaignId, sourceId));
+    await tx.delete(campaigns).where(eq(campaigns.id, sourceId));
+  });
 }
 
 export async function listValSales(month?: string) {

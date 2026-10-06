@@ -1,13 +1,16 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import TablePagination from "@/components/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Campaign } from "../../../drizzle/schema";
 import { calculateCampaignTotals, calculateCampaignWeeks } from "@/lib/campaign-metrics";
 import { paginateItems } from "@/lib/pagination";
 import { calculateWeeklyGoal } from "@/lib/weekly-sales";
 import { trpc } from "@/lib/trpc";
-import { BarChart3, CalendarDays, Check, Loader2, Megaphone, Plus, Target } from "lucide-react";
+import { BarChart3, CalendarDays, Check, Loader2, Megaphone, Pencil, Plus, Target, Trash2, Merge } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -26,9 +29,15 @@ export default function Campaigns() {
   const [endDate, setEndDate] = useState("");
   const [weeklyGoal, setWeeklyGoal] = useState("37500");
   const [campaignPage, setCampaignPage] = useState(1);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [mergingCampaign, setMergingCampaign] = useState<Campaign | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState("");
+  const { user } = useAuth();
   const queryInput = useMemo(() => ({ month: selectedMonth }), [selectedMonth]);
   const utils = trpc.useUtils();
   const campaignsQuery = trpc.campaigns.list.useQuery();
+  const usageQuery = trpc.campaigns.usage.useQuery();
+  const usage = usageQuery.data ?? [];
   const closuresQuery = trpc.closures.list.useQuery(queryInput);
   const campaigns = campaignsQuery.data ?? [];
   const paginatedCampaigns = useMemo(() => paginateItems(campaigns, campaignPage), [campaigns, campaignPage]);
@@ -57,12 +66,45 @@ export default function Campaigns() {
     onError: error => toast.error(error.message),
   });
 
+  const updateMutation = trpc.campaigns.update.useMutation({
+    onSuccess: async () => { await utils.campaigns.list.invalidate(); setEditingCampaign(null); toast.success("Campanha corrigida com sucesso"); },
+    onError: error => toast.error(error.message),
+  });
+  const deleteMutation = trpc.campaigns.deleteOne.useMutation({
+    onSuccess: async () => { setSelectedCampaignId(""); setCampaignPage(1); await Promise.all([utils.campaigns.list.invalidate(), utils.campaigns.usage.invalidate()]); toast.success("Campanha sem vendas excluída"); },
+    onError: error => toast.error(error.message),
+  });
+  const mergeMutation = trpc.campaigns.merge.useMutation({
+    onSuccess: async () => { setMergingCampaign(null); setMergeTargetId(""); setSelectedCampaignId(""); setCampaignPage(1); await Promise.all([utils.campaigns.list.invalidate(), utils.campaigns.usage.invalidate(), utils.closures.list.invalidate()]); toast.success("Campanhas mescladas sem excluir fechamentos"); },
+    onError: error => toast.error(error.message),
+  });
+
+  const saveEditedCampaign = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingCampaign) return;
+    updateMutation.mutate({ id: editingCampaign.id, name: editingCampaign.name, origin: editingCampaign.origin ?? "", startDate: editingCampaign.startDate, endDate: editingCampaign.endDate || undefined, weeklyGoal: String(editingCampaign.weeklyGoal).replace(".", ",") });
+  };
+  const removeCampaign = (campaign: Campaign) => {
+    if (usage.some(item => item.campaignId === campaign.id && item.count > 0)) return toast.error("A campanha possui fechamentos. Mescle-a com outra antes de excluí-la.");
+    if (!window.confirm(`Excluir a campanha “${campaign.name}”? Esta ação não poderá ser desfeita.`)) return;
+    const password = window.prompt("Digite a senha para excluir esta campanha:");
+    if (password !== null) deleteMutation.mutate({ id: campaign.id, password });
+  };
+  const mergeCampaign = () => {
+    if (!mergingCampaign || !mergeTargetId || mergingCampaign.id === Number(mergeTargetId)) return toast.error("Selecione outra campanha como destino");
+    const target = campaigns.find(item => item.id === Number(mergeTargetId));
+    const affected = usage.find(item => item.campaignId === mergingCampaign.id)?.count ?? 0;
+    if (!window.confirm(`Mover ${affected} fechamento(s) de “${mergingCampaign.name}” para “${target?.name}” e excluir a campanha duplicada?`)) return;
+    const password = window.prompt("Digite a senha para mesclar e retirar a campanha duplicada:");
+    if (password !== null) mergeMutation.mutate({ sourceId: mergingCampaign.id, targetId: Number(mergeTargetId), password });
+  };
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     createMutation.mutate({ name, origin, startDate, endDate: endDate || undefined, weeklyGoal });
   };
 
-  const isLoading = campaignsQuery.isLoading || closuresQuery.isLoading;
+  const isLoading = campaignsQuery.isLoading || closuresQuery.isLoading || usageQuery.isLoading;
 
   return <DashboardLayout><div className="min-h-screen bg-[#f3f8fb] px-4 py-6 sm:px-8 sm:py-8"><div className="mx-auto max-w-7xl">
     <header className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#2e7da3]">Gestão comercial</p><h1 className="text-3xl font-semibold tracking-tight text-[#174f6f]">Campanhas</h1><p className="mt-1 text-sm text-[#6e7f88]">Inscreva campanhas e acompanhe quanto cada uma está trazendo.</p></div><div><label htmlFor="campaign-period" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6e7f88]">Período dos resultados</label><Input id="campaign-period" type="month" value={selectedMonth} onChange={event => setSelectedMonth(event.target.value)} className="h-9 w-44 border-[#d7e5ec] bg-white" /></div></header>
@@ -78,8 +120,10 @@ export default function Campaigns() {
 
       <Card className="mb-6 overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader className="border-b border-[#edf2f4]"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#2e7da3]">Meta semanal da campanha</p><CardTitle className="mt-1 text-xl text-[#174f6f]">{activeCampaign?.name || "Selecione uma campanha"}</CardTitle><p className="text-xs text-[#84949c]">S1 a S5 usam somente os fechamentos vinculados à campanha selecionada.</p></div>{campaigns.length > 0 && <div><label htmlFor="active-campaign" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6e7f88]">Campanha exibida</label><select id="active-campaign" value={activeCampaignId ?? ""} onChange={event => setSelectedCampaignId(event.target.value)} className="h-9 max-w-xs rounded-md border border-[#d7e5ec] bg-white px-3 text-sm text-[#335f76]">{campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}</select></div>}</div></CardHeader><CardContent className="p-5 sm:p-6">{!activeCampaign || !activeTotal ? <EmptyState /> : <CampaignWeeklyChart weeks={weeks} weeklyGoal={Number(activeCampaign.weeklyGoal)} total={activeTotal.total} />}</CardContent></Card>
 
-      {campaigns.length > 0 && <Card className="overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-base text-[#174f6f]">Campanhas inscritas</CardTitle><p className="text-xs text-[#84949c]">Exibindo até 5 campanhas por página.</p></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[820px] text-sm"><thead><tr className="border-y border-[#e5edf1] bg-[#f7fafb] text-left text-xs uppercase tracking-wide text-[#6e7f88]"><th className="px-5 py-3">Campanha</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Período</th><th className="px-5 py-3 text-right">Meta semanal</th><th className="px-5 py-3 text-right">Valor no mês</th></tr></thead><tbody className="divide-y divide-[#edf2f4]">{paginatedCampaigns.items.map(campaign => { const summary = totals.find(item => item.id === campaign.id); return <tr key={campaign.id}><td className="px-5 py-3 font-medium text-[#174f6f]">{campaign.name}</td><td className="px-5 py-3 text-[#617782]">{campaign.origin || "Não informada"}</td><td className="px-5 py-3 text-[#617782]">{dateFormatter.format(new Date(`${campaign.startDate}T12:00:00`))}{campaign.endDate ? ` até ${dateFormatter.format(new Date(`${campaign.endDate}T12:00:00`))}` : " em diante"}</td><td className="px-5 py-3 text-right text-[#486a7b]">{currencyFormatter.format(Number(campaign.weeklyGoal))}</td><td className="px-5 py-3 text-right font-semibold text-[#2e7da3]">{currencyFormatter.format(summary?.total ?? 0)}</td></tr>; })}</tbody></table></div><TablePagination page={paginatedCampaigns.page} totalItems={paginatedCampaigns.totalItems} label="campanhas" onPageChange={setCampaignPage} /></CardContent></Card>}
+      {campaigns.length > 0 && <Card className="overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-base text-[#174f6f]">Campanhas inscritas</CardTitle><p className="text-xs text-[#84949c]">Exibindo até 5 campanhas por página.</p></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[1010px] text-sm"><thead><tr className="border-y border-[#e5edf1] bg-[#f7fafb] text-left text-xs uppercase tracking-wide text-[#6e7f88]"><th className="sticky left-0 z-10 bg-[#f7fafb] px-5 py-3 shadow-[8px_0_12px_-12px_rgba(23,79,111,0.45)]">Campanha</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Período</th><th className="px-5 py-3 text-right">Meta semanal</th><th className="px-5 py-3 text-right">Valor no mês</th><th className="sticky right-0 z-10 bg-[#f7fafb] px-5 py-3 text-right shadow-[-8px_0_12px_-12px_rgba(23,79,111,0.45)]">Ações</th></tr></thead><tbody className="divide-y divide-[#edf2f4]">{paginatedCampaigns.items.map(campaign => { const summary = totals.find(item => item.id === campaign.id); return <tr key={campaign.id}><td className="sticky left-0 z-[5] max-w-[170px] bg-white px-5 py-3 font-medium text-[#174f6f] shadow-[8px_0_12px_-12px_rgba(23,79,111,0.45)]"><span className="block">{campaign.name}</span><span className="mt-1 block text-[11px] font-normal text-[#8b989d]">{usage.find(item => item.campaignId === campaign.id)?.count ?? 0} fechamento(s) vinculado(s)</span></td><td className="px-5 py-3 text-[#617782]">{campaign.origin || "Não informada"}</td><td className="px-5 py-3 text-[#617782]">{dateFormatter.format(new Date(`${campaign.startDate}T12:00:00`))}{campaign.endDate ? ` até ${dateFormatter.format(new Date(`${campaign.endDate}T12:00:00`))}` : " em diante"}</td><td className="px-5 py-3 text-right text-[#486a7b]">{currencyFormatter.format(Number(campaign.weeklyGoal))}</td><td className="px-5 py-3 text-right font-semibold text-[#2e7da3]">{currencyFormatter.format(summary?.total ?? 0)}</td><td className="sticky right-0 z-[5] bg-white px-5 py-3 text-right shadow-[-8px_0_12px_-12px_rgba(23,79,111,0.45)]"><div className="flex items-center justify-end gap-1.5">{user?.role === "admin" && <><Button type="button" variant="outline" size="sm" onClick={() => setEditingCampaign({ ...campaign })} className="h-8 border-[#c9dfe8] px-2.5 text-[#2e718f]"><Pencil className="mr-1 h-3.5 w-3.5" />Editar</Button>{(usage.find(item => item.campaignId === campaign.id)?.count ?? 0) > 0 ? <Button type="button" variant="outline" size="sm" disabled={campaigns.length < 2 || mergeMutation.isPending} onClick={() => { setMergingCampaign(campaign); setMergeTargetId(""); }} className="h-8 border-[#decda5] px-2.5 text-[#876e2c]"><Merge className="mr-1 h-3.5 w-3.5" />Mesclar</Button> : <Button type="button" variant="outline" size="sm" disabled={deleteMutation.isPending} onClick={() => removeCampaign(campaign)} className="h-8 border-[#e2baba] px-2.5 text-[#a14f4f]"><Trash2 className="mr-1 h-3.5 w-3.5" />Excluir</Button>}</>}</div></td></tr>; })}</tbody></table></div><TablePagination page={paginatedCampaigns.page} totalItems={paginatedCampaigns.totalItems} label="campanhas" onPageChange={setCampaignPage} /></CardContent></Card>}
     </>}
+    <Dialog open={Boolean(editingCampaign)} onOpenChange={open => { if (!open) setEditingCampaign(null); }}><DialogContent className="border-[#d8e5eb] bg-white sm:max-w-xl"><DialogHeader><DialogTitle className="text-[#174f6f]">Corrigir campanha</DialogTitle><DialogDescription>Altere os dados da campanha sem apagar nem desvincular os fechamentos existentes.</DialogDescription></DialogHeader>{editingCampaign && <form onSubmit={saveEditedCampaign} className="grid gap-3 sm:grid-cols-2"><div className="sm:col-span-2"><Field label="Nome da campanha"><Input value={editingCampaign.name} onChange={event => setEditingCampaign({ ...editingCampaign, name: event.target.value })} required /></Field></div><Field label="Origem"><Input value={editingCampaign.origin ?? ""} onChange={event => setEditingCampaign({ ...editingCampaign, origin: event.target.value })} required /></Field><Field label="Meta semanal (R$)"><Input value={String(editingCampaign.weeklyGoal).replace(".", ",")} onChange={event => setEditingCampaign({ ...editingCampaign, weeklyGoal: event.target.value })} required inputMode="decimal" /></Field><Field label="Início"><Input type="date" value={editingCampaign.startDate} onChange={event => setEditingCampaign({ ...editingCampaign, startDate: event.target.value })} required /></Field><Field label="Fim (opcional)"><Input type="date" value={editingCampaign.endDate ?? ""} onChange={event => setEditingCampaign({ ...editingCampaign, endDate: event.target.value || null })} /></Field><DialogFooter className="sm:col-span-2"><Button type="button" variant="outline" onClick={() => setEditingCampaign(null)}>Cancelar</Button><Button type="submit" disabled={updateMutation.isPending} className="bg-[#2e7da3] hover:bg-[#246989]">Salvar correção</Button></DialogFooter></form>}</DialogContent></Dialog>
+    <Dialog open={Boolean(mergingCampaign)} onOpenChange={open => { if (!open) setMergingCampaign(null); }}><DialogContent className="border-[#d8e5eb] bg-white sm:max-w-xl"><DialogHeader><DialogTitle className="text-[#174f6f]">Mesclar campanha repetida</DialogTitle><DialogDescription>Os fechamentos da campanha “{mergingCampaign?.name}” serão transferidos para a campanha de destino. A duplicata será excluída somente após a transferência.</DialogDescription></DialogHeader><Field label="Campanha que permanecerá"><select value={mergeTargetId} onChange={event => setMergeTargetId(event.target.value)} className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Escolha a campanha de destino</option>{campaigns.filter(item => item.id !== mergingCampaign?.id).map(item => <option key={item.id} value={item.id}>{item.name} · {item.startDate}</option>)}</select></Field><DialogFooter><Button type="button" variant="outline" onClick={() => setMergingCampaign(null)}>Cancelar</Button><Button type="button" disabled={!mergeTargetId || mergeMutation.isPending} onClick={mergeCampaign} className="bg-[#2e7da3] hover:bg-[#246989]">Mesclar e preservar vendas</Button></DialogFooter></DialogContent></Dialog>
   </div></div></DashboardLayout>;
 }
 

@@ -28,7 +28,7 @@ const formatPhone = (value: string) => value.replace(/\D/g, "").replace(/^(\d{2}
 const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}min ${String(seconds % 60).padStart(2, "0")}s`;
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 type CrcName = (typeof crcNames)[number];
-const displayCrcName = (name: string) => name === "WISLLAYNI" ? "Wisllayny" : name === "JAYZA" ? "JAYZA" : name === "VAL" ? "Val" : name;
+const displayCrcName = (name: string) => name === "WISLLAYNI" ? "Wisllayny" : name === "JAYZA" ? "JAYZA" : name === "VAL" ? "Vivi" : name;
 const getTimeTone = (seconds: number, hasData = true) => !hasData ? { label: "Sem dados", className: "border-[#dce5dd] bg-[#f5f8f5] text-[#829287]" } : seconds < 120 ? { label: "Excelente", className: "border-[#b9dfc0] bg-[#e9f7eb] text-[#2f7b40]" } : seconds <= 300 ? { label: "Atenção", className: "border-[#f1d99b] bg-[#fff7df] text-[#9a6b12]" } : { label: "Acima do limite", className: "border-[#efb9b9] bg-[#fff0f0] text-[#a33b3b]" };
 const statusLabel = { closed: "Fechado", follow_up: "Em acompanhamento", not_closed: "Não fechado" } as const;
 const now = new Date();

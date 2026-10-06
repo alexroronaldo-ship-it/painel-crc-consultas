@@ -4,12 +4,25 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createCampaign, createClosure, createValSale, deleteClosure, deleteValSale, listCampaigns, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateClosureTime } from "./db";
+import { createCampaign, createClosure, createValSale, deleteClosure, deleteEmptyCampaign, deleteValSale, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateCampaign, updateClosureTime } from "./db";
 import { storagePut } from "./storage";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
 const insurancePlans = ["Uniodonto", "Unimed", "Rede Unna", "Amil"] as const;
+const campaignInput = z.object({
+  name: z.string().trim().min(2, "Informe o nome da campanha").max(160),
+  origin: z.string().trim().min(2, "Informe a origem da campanha").max(160),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de início"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data final válida").optional(),
+  weeklyGoal: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe uma meta semanal válida"),
+});
+const assertCampaignDates = (input: { startDate: string; endDate?: string }) => {
+  if (input.endDate && input.endDate < input.startDate) throw new Error("A data final deve ser igual ou posterior à data inicial");
+};
+const assertManager = (role: string) => {
+  if (role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Somente a gerência pode alterar campanhas" });
+};
 
 export const appRouter = router({
   system: systemRouter,
@@ -24,7 +37,7 @@ export const appRouter = router({
   crcProfiles: router({
     list: protectedProcedure.query(() => listCrcProfiles()),
     uploadPhoto: protectedProcedure.input(z.object({
-      crcName: z.enum(crcNames),
+      crcName: z.enum(weeklyActivityNames),
       mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
       base64: z.string().min(1).max(2_800_000).regex(/^[A-Za-z0-9+/]+={0,2}$/, "Arquivo inválido"),
     })).mutation(async ({ ctx, input }) => {
@@ -109,15 +122,29 @@ export const appRouter = router({
   }),
   campaigns: router({
     list: protectedProcedure.query(() => listCampaigns()),
-    create: protectedProcedure.input(z.object({
-      name: z.string().trim().min(2, "Informe o nome da campanha").max(160),
-      origin: z.string().trim().min(2, "Informe a origem da campanha").max(160),
-      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de início"),
-      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data final válida").optional(),
-      weeklyGoal: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe uma meta semanal válida"),
-    })).mutation(async ({ ctx, input }) => {
-      if (input.endDate && input.endDate < input.startDate) throw new Error("A data final deve ser igual ou posterior à data inicial");
+    usage: protectedProcedure.query(() => listCampaignUsage()),
+    create: protectedProcedure.input(campaignInput).mutation(async ({ ctx, input }) => {
+      assertCampaignDates(input);
       await createCampaign({ ...input, weeklyGoal: input.weeklyGoal.replace(",", "."), createdBy: ctx.user.id });
+      return { success: true } as const;
+    }),
+    update: protectedProcedure.input(campaignInput.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      assertManager(ctx.user.role);
+      assertCampaignDates(input);
+      const { id, ...values } = input;
+      await updateCampaign(id, { ...values, endDate: values.endDate ?? null, weeklyGoal: values.weeklyGoal.replace(",", ".") });
+      return { success: true } as const;
+    }),
+    deleteOne: protectedProcedure.input(z.object({ id: z.number().int().positive(), password: z.string() })).mutation(async ({ ctx, input }) => {
+      assertManager(ctx.user.role);
+      if (input.password !== "0000") throw new TRPCError({ code: "FORBIDDEN", message: "Senha provisória incorreta" });
+      await deleteEmptyCampaign(input.id);
+      return { success: true } as const;
+    }),
+    merge: protectedProcedure.input(z.object({ sourceId: z.number().int().positive(), targetId: z.number().int().positive(), password: z.string() })).mutation(async ({ ctx, input }) => {
+      assertManager(ctx.user.role);
+      if (input.password !== "0000") throw new TRPCError({ code: "FORBIDDEN", message: "Senha provisória incorreta" });
+      await mergeCampaigns(input.sourceId, input.targetId);
       return { success: true } as const;
     }),
   }),
