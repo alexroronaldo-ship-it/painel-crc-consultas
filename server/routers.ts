@@ -6,6 +6,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { createCampaign, createClosure, createValSale, deleteClosure, deleteEmptyCampaign, deleteValSale, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateCampaign, updateClosureTime } from "./db";
 import { storagePut } from "./storage";
+import { orthoActiveRouter } from "./routers/orthoActive";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
@@ -26,6 +27,7 @@ const assertManager = (role: string) => {
 
 export const appRouter = router({
   system: systemRouter,
+  orthoActive: orthoActiveRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

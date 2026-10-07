@@ -109,3 +109,63 @@ export const valSales = mysqlTable("val_sales", {
 
 export type ValSale = typeof valSales.$inferSelect;
 export type InsertValSale = typeof valSales.$inferInsert;
+
+/** Módulo independente: Pacientes Ativos Orto Implante. Não mistura registros com closures/campaigns. */
+export const orthoActiveCampaigns = mysqlTable("ortho_active_campaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  origin: varchar("origin", { length: 160 }).notNull(),
+  startDate: varchar("startDate", { length: 10 }).notNull(),
+  endDate: varchar("endDate", { length: 10 }),
+  weeklyGoal: decimal("weeklyGoal", { precision: 12, scale: 2 }),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OrthoActiveCampaign = typeof orthoActiveCampaigns.$inferSelect;
+export type InsertOrthoActiveCampaign = typeof orthoActiveCampaigns.$inferInsert;
+
+export const orthoActivePatients = mysqlTable("ortho_active_patients", {
+  id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
+  patientName: varchar("patientName", { length: 160 }).notNull(),
+  phone: varchar("phone", { length: 40 }).notNull(),
+  closingDate: varchar("closingDate", { length: 10 }).notNull(),
+  closedItem: text("closedItem").notNull(),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
+  internalStatus: mysqlEnum("internalStatus", ["closed", "follow_up", "not_closed"]).notNull().default("closed"),
+  internalNotes: text("internalNotes"),
+  campaignId: int("campaignId"),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OrthoActivePatient = typeof orthoActivePatients.$inferSelect;
+export type InsertOrthoActivePatient = typeof orthoActivePatients.$inferInsert;
+
+/** Nenhuma meta numérica é presumida; a gerência configura por pessoa e por mês. */
+export const orthoActiveGoals = mysqlTable("ortho_active_goals", {
+  id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
+  month: varchar("month", { length: 7 }).notNull(),
+  monthlyGoal: decimal("monthlyGoal", { precision: 12, scale: 2 }),
+  weeklySalesGoal: decimal("weeklySalesGoal", { precision: 12, scale: 2 }),
+  timeGoalSeconds: int("timeGoalSeconds"),
+  updatedBy: int("updatedBy").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [uniqueIndex("ortho_active_goals_crc_month_unique").on(table.crcName, table.month)]);
+export type OrthoActiveGoal = typeof orthoActiveGoals.$inferSelect;
+
+export const orthoActiveWeekly = mysqlTable("ortho_active_weekly", {
+  id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
+  month: varchar("month", { length: 7 }).notNull(),
+  week: int("week").notNull(),
+  taskCount: int("taskCount").notNull().default(0),
+  taskGoal: int("taskGoal"),
+  description: text("description"),
+  appointmentCount: int("appointmentCount").notNull().default(0),
+  appointmentGoal: int("appointmentGoal"),
+  updatedBy: int("updatedBy").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [uniqueIndex("ortho_active_weekly_crc_month_week_unique").on(table.crcName, table.month, table.week)]);
+export type OrthoActiveWeek = typeof orthoActiveWeekly.$inferSelect;
