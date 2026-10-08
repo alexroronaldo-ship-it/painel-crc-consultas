@@ -1,4 +1,4 @@
-export const ODONTOMAB_INSURANCE_PLANS = ["Rede Unna (Odontoprev)", "Amil", "Hapvida", "Unimed", "Uniodonto"] as const;
+export const ODONTOMAB_INSURANCE_PLANS = ["Rede Unna (Odontoprev)", "Amil", "Hapvida", "Unimed", "Uniodonto", "Particular"] as const;
 export const ODONTOMAB_COMMISSION_RATE = 0.002;
 export const PATIENT_TYPE_LABELS = { active: "Ativo", new: "Novo" } as const;
 
@@ -9,6 +9,11 @@ export function displayOdontomabInsurance(plan?: string | null) {
 
 export function salesForOdontomabCrc<T extends { crcId: string }>(rows: T[], crcId: string): T[] {
   return rows.filter(row => row.crcId === crcId);
+}
+
+/** Uma retirada pode ser escolhida explicitamente para consultar o histórico. */
+export function selectOdontomabCrc<T extends { id: string; isActive: boolean }>(crcs: T[], selectedId: string): T | undefined {
+  return crcs.find(crc => crc.id === selectedId) ?? crcs.find(crc => crc.isActive);
 }
 
 export function calculateOdontomabMetrics(rows: Array<{ patientType?: string | null; value: string | number }>) {

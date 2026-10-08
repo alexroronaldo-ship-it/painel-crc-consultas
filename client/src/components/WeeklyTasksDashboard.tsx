@@ -11,11 +11,12 @@ export type WeeklyTaskRecord = {
   description: string;
 };
 
-export default function WeeklyTasksDashboard({ name, records, enabled, isLoading = false, onAdd, onEdit, buttonLabel = "Registrar tarefas da semana" }: {
+export default function WeeklyTasksDashboard({ name, records, enabled, isLoading = false, onAdd, onEdit, buttonLabel = "Registrar tarefas da semana", readOnly = false }: {
   name: string;
   records: WeeklyTaskRecord[];
   enabled: boolean;
   isLoading?: boolean;
+  readOnly?: boolean;
   onAdd: () => void;
   onEdit: (week: number) => void;
   buttonLabel?: string;
@@ -40,7 +41,7 @@ export default function WeeklyTasksDashboard({ name, records, enabled, isLoading
         const count = record?.taskCount ?? 0;
         const reached = count >= 100;
         const progress = Math.min(100, count);
-        return <button type="button" key={week} onClick={() => onEdit(week)} disabled={!enabled} className="rounded-xl border border-[#dce8ed] bg-[#fbfdfe] p-4 text-left transition-colors hover:border-[#a9cbd9] hover:bg-[#f4fafc] disabled:cursor-default">
+        return <button type="button" key={week} onClick={() => onEdit(week)} disabled={!enabled || readOnly} className="rounded-xl border border-[#dce8ed] bg-[#fbfdfe] p-4 text-left transition-colors hover:border-[#a9cbd9] hover:bg-[#f4fafc] disabled:cursor-default">
           <div className="flex items-center justify-between"><span className="text-sm font-bold text-[#174f6f]">S{week}</span>{record ? <Pencil className="h-3.5 w-3.5 text-[#7d98a5]" /> : <Plus className="h-3.5 w-3.5 text-[#7d98a5]" />}</div>
           <p className="mt-4 text-2xl font-semibold text-[#174f6f]">{count}</p>
           <p className="text-[11px] text-[#8b989d]">meta: 100</p>
@@ -49,7 +50,7 @@ export default function WeeklyTasksDashboard({ name, records, enabled, isLoading
           <p className={`mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 ${record ? "text-[#617782]" : "text-[#a5b0b5]"}`}>{record?.description || "Nenhuma tarefa descrita"}</p>
         </button>;
       })}</div>}
-      <Button type="button" onClick={onAdd} disabled={!enabled} variant="outline" className="mt-4 w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]"><Plus className="mr-2 h-4 w-4" />{buttonLabel}</Button>
+      <Button type="button" onClick={onAdd} disabled={!enabled || readOnly} variant="outline" className="mt-4 w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]"><Plus className="mr-2 h-4 w-4" />{buttonLabel}</Button>
     </CardContent>
   </Card>;
 }

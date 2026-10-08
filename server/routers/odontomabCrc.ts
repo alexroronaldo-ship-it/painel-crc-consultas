@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { createOdontomabCrc, listOdontomabCrcs, renameOdontomabCrc, requireOdontomabCrc, saveOdontomabCrcPhoto } from "../odontomabCrcDb";
+import { createOdontomabCrc, listOdontomabCrcs, removeOdontomabCrc, renameOdontomabCrc, requireOdontomabCrc, restoreOdontomabCrc, saveOdontomabCrcPhoto } from "../odontomabCrcDb";
 import { listCrcWeeklyActivities, listCrcWeeklyAppointments, saveCrcWeeklyActivity, saveCrcWeeklyAppointment } from "../db";
 import { storagePut } from "../storage";
 
@@ -14,6 +14,17 @@ export const odontomabCrcRouter = router({
   list: protectedProcedure.query(() => listOdontomabCrcs()),
   create: protectedProcedure.input(z.object({ name })).mutation(async ({ ctx, input }) => { manager(ctx.user.role); return createOdontomabCrc(input.name, ctx.user.id); }),
   rename: protectedProcedure.input(z.object({ id, name })).mutation(async ({ ctx, input }) => { manager(ctx.user.role); await renameOdontomabCrc(input.id, input.name); return { success: true } as const; }),
+  remove: protectedProcedure.input(z.object({ id, password: z.string().max(128) })).mutation(async ({ ctx, input }) => {
+    manager(ctx.user.role);
+    if (input.password !== "0000") throw new TRPCError({ code: "FORBIDDEN", message: "Senha provisória incorreta" });
+    await removeOdontomabCrc(input.id, ctx.user.id);
+    return { success: true } as const;
+  }),
+  restore: protectedProcedure.input(z.object({ id })).mutation(async ({ ctx, input }) => {
+    manager(ctx.user.role);
+    await restoreOdontomabCrc(input.id);
+    return { success: true } as const;
+  }),
   uploadPhoto: protectedProcedure.input(z.object({ id, mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]), base64: z.string().min(1).max(2_800_000).regex(/^[A-Za-z0-9+/]+={0,2}$/) })).mutation(async ({ ctx, input }) => {
     manager(ctx.user.role); await requireOdontomabCrc(input.id);
     const bytes = Buffer.from(input.base64, "base64");
@@ -28,11 +39,11 @@ export const odontomabCrcRouter = router({
     return { success: true, photoUrl: url } as const;
   }),
   tasks: router({
-    list: protectedProcedure.input(z.object({ crcId: id, month })).query(async ({ input }) => { await requireOdontomabCrc(input.crcId); return (await listCrcWeeklyActivities(input.month)).filter(row => row.crcName === input.crcId); }),
+    list: protectedProcedure.input(z.object({ crcId: id, month })).query(async ({ input }) => { await requireOdontomabCrc(input.crcId, true); return (await listCrcWeeklyActivities(input.month)).filter(row => row.crcName === input.crcId); }),
     save: protectedProcedure.input(weekBase.extend({ taskCount: z.number().int().min(0).max(100000), description: z.string().trim().min(2).max(5000) })).mutation(async ({ ctx, input }) => { await requireOdontomabCrc(input.crcId); await saveCrcWeeklyActivity({ crcName: input.crcId, month: input.month, week: input.week, taskCount: input.taskCount, description: input.description, createdBy: ctx.user.id }); return { success: true } as const; }),
   }),
   appointments: router({
-    list: protectedProcedure.input(z.object({ crcId: id, month })).query(async ({ input }) => { await requireOdontomabCrc(input.crcId); return (await listCrcWeeklyAppointments(input.month)).filter(row => row.crcName === input.crcId); }),
+    list: protectedProcedure.input(z.object({ crcId: id, month })).query(async ({ input }) => { await requireOdontomabCrc(input.crcId, true); return (await listCrcWeeklyAppointments(input.month)).filter(row => row.crcName === input.crcId); }),
     save: protectedProcedure.input(weekBase.extend({ appointmentCount: z.number().int().min(0).max(100000), weeklyGoal: z.number().int().min(1).max(100000) })).mutation(async ({ ctx, input }) => { await requireOdontomabCrc(input.crcId); await saveCrcWeeklyAppointment({ crcName: input.crcId, month: input.month, week: input.week, appointmentCount: input.appointmentCount, weeklyGoal: input.weeklyGoal, createdBy: ctx.user.id }); return { success: true } as const; }),
   }),
 });

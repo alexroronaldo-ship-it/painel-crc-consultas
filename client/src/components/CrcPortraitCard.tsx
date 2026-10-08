@@ -10,13 +10,14 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 type CrcName = "WISLLAYNI" | "JAYZA" | "VAL";
 const validTypes = ["image/jpeg", "image/png", "image/webp"];
 
-export default function CrcPortraitCard({ crcName, displayName, commission, revenue, month, photoUrl }: {
+export default function CrcPortraitCard({ crcName, displayName, commission, revenue, month, photoUrl, fillHeight = true }: {
   crcName: CrcName;
   displayName: string;
   commission?: number;
   revenue?: number;
   month: string;
   photoUrl?: string;
+  fillHeight?: boolean;
 }) {
   const inputId = useId();
   const utils = trpc.useUtils();
@@ -51,8 +52,8 @@ export default function CrcPortraitCard({ crcName, displayName, commission, reve
     upload.mutate({ crcName, mimeType: file.type as "image/jpeg" | "image/png" | "image/webp", base64 });
   }
 
-  return <Card className="h-full border-[#cddfe8] bg-white shadow-sm">
-    <CardContent className="flex h-full flex-col p-5">
+  return <Card className={`${fillHeight ? "h-full" : ""} border-[#cddfe8] bg-white shadow-sm`}>
+    <CardContent className={`flex ${fillHeight ? "h-full" : ""} flex-col p-5`}>
       <div className="mb-4 flex items-center justify-between gap-2">
         <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2e7da3]">Perfil da CRC</p><h3 className="mt-1 text-lg font-semibold text-[#174f6f]">{displayName}</h3></div>
         <Camera className="h-5 w-5 text-[#7da1b3]" aria-hidden="true" />

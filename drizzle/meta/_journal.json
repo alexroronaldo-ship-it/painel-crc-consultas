@@ -120,6 +120,13 @@
       "when": 1791499595900,
       "tag": "0016_silent_harpoon",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1791501232535,
+      "tag": "0017_shallow_stature",
+      "breakpoints": true
     }
   ]
 }

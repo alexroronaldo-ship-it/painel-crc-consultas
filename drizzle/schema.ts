@@ -1,4 +1,4 @@
-import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -103,6 +103,9 @@ export const odontomabCrcs = mysqlTable("odontomab_crcs", {
   normalizedName: varchar("normalizedName", { length: 160 }).notNull().unique(),
   photoKey: varchar("photoKey", { length: 512 }),
   photoUrl: varchar("photoUrl", { length: 768 }),
+  isActive: boolean("isActive").notNull().default(true),
+  removedBy: int("removedBy"),
+  removedAt: timestamp("removedAt"),
   createdBy: int("createdBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

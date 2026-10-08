@@ -33,7 +33,8 @@ export const odontomabRouter = router({
   }),
   update: protectedProcedure.input(patientInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
     const { id, ...values } = input;
-    await requireOdontomabCrc(values.crcId);
+    const existing = await getValSale(id);
+    await requireOdontomabCrc(values.crcId, existing.crcId === values.crcId);
     await updateValSale(id, { ...values, phone: values.phone || null, notes: values.notes || null, value: values.value.replace(",", ".") });
     return { success: true } as const;
   }),

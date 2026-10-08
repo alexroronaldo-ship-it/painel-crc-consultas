@@ -1,11 +1,11 @@
-# CRCs cadastráveis — Odontomab
+# Atualização — retirada de CRC, Particular e fotos
 
-- [x] Cadastro próprio de CRCs com ID estável, nome editável e foto opcional; nome normalizado único evita duplicatas.
-- [x] Vivi preservada como VAL, com referência de foto copiada e todas as vendas anteriores associadas ao mesmo perfil. Sem apagar vendas ou semanas.
-- [x] Botão Nova CRC com nome e foto manual; Editar CRC; abas individuais com miniatura e troca de foto na coluna lateral.
-- [x] Seleção de CRC obrigatória em registro/correção de pacientes; identificação na tabela.
-- [x] Vendas, Ativo/Novo, convênios, comissão fixa de 0,2%, meta de R$75 mil, tarefas, tempo e agenda separados por CRC. Consolidado da equipe claramente identificado.
-- [x] Upload e cadastro restritos à gerência, validação de existência, assinatura real e limite de 2 MB. Nenhuma nova conta de login criada.
-- [x] Migração 0016 revisada e aplicada; 84 testes, tipagem, build e integridade do diff aprovados. Capturas desktop/celular da Odontomab revisadas.
+- [x] Particular incluído na Odontomab: cadastro, correção, tabela, busca e cartão de acompanhamento. Mantida comissão fixa de 0,2% e não reclassificados registros antigos sem convênio.
+- [x] Retirar CRC com diálogo nomeado, confirmação, senha provisória validada no servidor e permissão de gerência.
+- [x] Retirada reversível com isActive e auditoria; preservados ID, foto, vendas, pacientes, comissão e semanas. CRCs retiradas permite consultar o histórico ou reativar o mesmo perfil.
+- [x] CRCs retiradas fora das abas ativas e de novos lançamentos; correção de paciente antigo mantém a atribuição original. Estado vazio previsto para retirada da última CRC.
+- [x] Pacientes Ativos Orto Implante exibe retrato profissional e upload de Wisllayny/JAYZA com comissão exclusiva dos fechamentos desse módulo. Foto compartilhada com o Funil de Vendas, como explicado na interface; métricas continuam independentes.
+- [x] Migração 0017 aditiva aplicada; todos os perfis existentes continuam ativos por padrão. 96 testes, tipagem, build e integridade do diff aprovados. Habilidade validada.
+- [x] Revisão das capturas autenticadas de Odontomab e Pacientes Ativos, desktop e celular: Retirar CRC visível, Particular nos indicadores/formulário, miniaturas nas abas e foto com comissão na coluna lateral.
 
-Versão concluída para salvamento do checkpoint. A navegação pelo navegador separado chegou ao login; a inspeção visual autenticada foi realizada pelas capturas do projeto. Não foram criadas CRCs ou pacientes de teste no banco real. O único registro de perfil inserido pela migração representa a Vivi já existente.
+Nenhuma CRC real foi retirada ou reativada e nenhum paciente foi alterado como teste. Retirada, senha, acesso, reativação, preservação e caso sem CRC ativa foram testados com mocks, não por exclusões na base real. O próximo passo é salvar o checkpoint final da versão validada.

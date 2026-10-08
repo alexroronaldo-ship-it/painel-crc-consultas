@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { ODONTOMAB_INSURANCE_PLANS } from "../shared/odontomab";
-const mocks = vi.hoisted(() => ({ createValSale: vi.fn(), deleteValSale: vi.fn(), getValSale: vi.fn().mockResolvedValue({ id: 9 }), listValSales: vi.fn().mockResolvedValue([]), saveValPatientPhoto: vi.fn(), updateValSale: vi.fn(), storagePut: vi.fn().mockResolvedValue({ key: "patient-photo.png", url: "/manus-storage/patient-photo.png" }) }));
+const mocks = vi.hoisted(() => ({ createValSale: vi.fn(), deleteValSale: vi.fn(), getValSale: vi.fn().mockResolvedValue({ id: 9, crcId: "VAL" }), listValSales: vi.fn().mockResolvedValue([]), saveValPatientPhoto: vi.fn(), updateValSale: vi.fn(), storagePut: vi.fn().mockResolvedValue({ key: "patient-photo.png", url: "/manus-storage/patient-photo.png" }) }));
 vi.mock("./db", () => mocks);
 const crcMocks = vi.hoisted(() => ({ requireOdontomabCrc: vi.fn().mockResolvedValue({ id: "VAL", name: "Vivi" }) }));
 vi.mock("./odontomabCrcDb", () => crcMocks);
@@ -20,10 +20,10 @@ describe("Odontomab — pacientes ativos e novos", () => {
     await expect(caller.create(input)).resolves.toEqual({ success: true });
     expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", totalTimeSeconds: 0, createdBy: 1 }));
   });
-  it("permite os cinco convênios definidos e paciente novo", async () => {
+  it("permite os cinco convênios e Particular para paciente novo", async () => {
     const caller = odontomabRouter.createCaller(ctx());
     for (const insurancePlan of ODONTOMAB_INSURANCE_PLANS) await caller.create({ ...input, patientType: "new", insurancePlan });
-    expect(mocks.createValSale).toHaveBeenCalledTimes(5);
+    expect(mocks.createValSale).toHaveBeenCalledTimes(6);
     expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientType: "new", insurancePlan: "Hapvida" }));
   });
   it("rejeita nome vazio, tipo ausente e convênio fora da lista", async () => {
@@ -46,6 +46,29 @@ describe("Odontomab — pacientes ativos e novos", () => {
     expect(mocks.updateValSale).toHaveBeenCalledWith(9, expect.objectContaining({ patientType: "new", insurancePlan: "Amil", value: "2500.50" }));
     expect(mocks.deleteValSale).not.toHaveBeenCalled();
     expect(mocks.saveValPatientPhoto).not.toHaveBeenCalled();
+  });
+  it("aceita Particular no registro e na correção mantendo o tipo do paciente", async () => {
+    const caller = odontomabRouter.createCaller(ctx());
+    await caller.create({ ...input, insurancePlan: "Particular", patientType: "new" });
+    expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ insurancePlan: "Particular", patientType: "new" }));
+    await caller.update({ ...input, id: 9, insurancePlan: "Particular" });
+    expect(mocks.updateValSale).toHaveBeenCalledWith(9, expect.objectContaining({ insurancePlan: "Particular", patientType: "active" }));
+  });
+  it("preserva a atribuição de pacientes históricos à CRC retirada", async () => {
+    const caller = odontomabRouter.createCaller(ctx());
+    await caller.update({ ...input, id: 9 });
+    expect(crcMocks.requireOdontomabCrc).toHaveBeenCalledWith("VAL", true);
+    expect(mocks.updateValSale).toHaveBeenCalledWith(9, expect.objectContaining({ crcId: "VAL" }));
+  });
+  it("não aceita novo paciente nem transferência para uma CRC retirada", async () => {
+    const caller = odontomabRouter.createCaller(ctx());
+    crcMocks.requireOdontomabCrc.mockRejectedValueOnce(new Error("CRC retirada"));
+    await expect(caller.create({ ...input, crcId: "ODO_REMOVED" })).rejects.toThrow("retirada");
+    crcMocks.requireOdontomabCrc.mockRejectedValueOnce(new Error("CRC retirada"));
+    await expect(caller.update({ ...input, id: 9, crcId: "ODO_REMOVED" })).rejects.toThrow("retirada");
+    expect(crcMocks.requireOdontomabCrc).toHaveBeenCalledWith("ODO_REMOVED", false);
+    expect(mocks.createValSale).not.toHaveBeenCalled();
+    expect(mocks.updateValSale).not.toHaveBeenCalled();
   });
   it("não expõe a chave de armazenamento ao listar fotos", async () => {
     mocks.listValSales.mockResolvedValueOnce([{ id: 9, patientName: "Paciente", photoKey: "privada", photoUrl: "/manus-storage/photo.png", patientType: null }]);

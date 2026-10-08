@@ -1,3 +1,4 @@
+import CrcPortraitCard from "@/components/CrcPortraitCard";
 import { ActiveWeeklyChart } from "@/components/OrthoActiveCharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ const weeks = [1, 2, 3, 4, 5] as const;
 const pct = (actual: number, target: number) => Math.min(100, actual / target * 100);
 const moneyInput = (value: string) => value.replace(/[^\d,]/g, "");
 
-export default function OrthoActiveCrcPanel({ crcName, month, records, goals, weekly, isAdmin }: { crcName: ActiveCrcName; month: string; records: RecordRow[]; goals: GoalRow[]; weekly: WeekRow[]; isAdmin: boolean }) {
+export default function OrthoActiveCrcPanel({ crcName, month, records, goals, weekly, isAdmin, photoUrl }: { crcName: ActiveCrcName; month: string; records: RecordRow[]; goals: GoalRow[]; weekly: WeekRow[]; isAdmin: boolean; photoUrl?: string }) {
   const label = ACTIVE_CRC_LABELS[crcName];
   const goal = goals.find(item => item.crcName === crcName);
   const monthlyGoal = goal?.monthlyGoal ? Number(goal.monthlyGoal) : null;
@@ -71,13 +72,13 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
 
   return <div className="space-y-5">
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(250px,320px)]">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-4"><div className="grid gap-4 sm:grid-cols-3">
         <Stat label={`Vendas · ${label}`} value={money.format(metrics.revenue)} detail={`${metrics.closedCount} fechamentos neste módulo`} />
-        <Stat label="Comissão do período · 0,2%" value={money.format(metrics.commission)} detail="Calculada somente sobre vendas fechadas desta CRC" />
         <Stat label="Meta mensal própria" value={monthlyGoal ? money.format(monthlyGoal) : "Não definida"} detail={monthlyGoal ? metrics.revenue >= monthlyGoal ? `Meta superada em ${money.format(metrics.revenue - monthlyGoal)}` : `Faltam ${money.format(monthlyGoal - metrics.revenue)}` : "Configure sem afetar o Funil de Vendas"} />
         <Stat label="Pacientes registrados" value={String(metrics.count)} detail="Somente Wisllayny e JAYZA" />
       </div>
-      <Card className="border-[#cddfe8] bg-white shadow-sm"><CardHeader><div className="flex items-center justify-between gap-2"><CardTitle className="flex items-center gap-2 text-base text-[#174f6f]"><Target className="h-4 w-4 text-[#b4a92f]" />Metas de {label}</CardTitle>{isAdmin && <Button type="button" variant="outline" size="sm" onClick={openGoal} disabled={!month}><Pencil className="mr-1.5 h-3.5 w-3.5" />Configurar</Button>}</div></CardHeader><CardContent className="space-y-4"><div><div className="flex justify-between gap-2 text-xs text-[#6e7f88]"><span>Faturamento mensal</span><span>{monthlyGoal ? money.format(monthlyGoal) : "A definir"}</span></div><div className="mt-2 h-3 overflow-hidden rounded-full bg-[#e3eef2]"><div className="h-full bg-[#2e7da3]" style={{ width: `${monthlyGoal ? pct(metrics.revenue, monthlyGoal) : 0}%` }} /></div></div><p className="text-xs text-[#6e7f88]">Meta semanal de vendas: <strong className="text-[#174f6f]">{weeklySalesGoal ? money.format(weeklySalesGoal) : "a definir"}</strong></p><p className="text-xs text-[#6e7f88]">Valores independentes das metas e comissões da página anterior.</p></CardContent></Card>
+      <Card className="border-[#cddfe8] bg-white shadow-sm"><CardHeader><div className="flex items-center justify-between gap-2"><CardTitle className="flex items-center gap-2 text-base text-[#174f6f]"><Target className="h-4 w-4 text-[#b4a92f]" />Metas de {label}</CardTitle>{isAdmin && <Button type="button" variant="outline" size="sm" onClick={openGoal} disabled={!month}><Pencil className="mr-1.5 h-3.5 w-3.5" />Configurar</Button>}</div></CardHeader><CardContent className="space-y-4"><div><div className="flex justify-between gap-2 text-xs text-[#6e7f88]"><span>Faturamento mensal</span><span>{monthlyGoal ? money.format(monthlyGoal) : "A definir"}</span></div><div className="mt-2 h-3 overflow-hidden rounded-full bg-[#e3eef2]"><div className="h-full bg-[#2e7da3]" style={{ width: `${monthlyGoal ? pct(metrics.revenue, monthlyGoal) : 0}%` }} /></div></div><p className="text-xs text-[#6e7f88]">Meta semanal de vendas: <strong className="text-[#174f6f]">{weeklySalesGoal ? money.format(weeklySalesGoal) : "a definir"}</strong></p><p className="text-xs text-[#6e7f88]">Valores independentes das metas e comissões da página anterior.</p></CardContent></Card></div>
+      <div className="space-y-2"><CrcPortraitCard fillHeight={false} crcName={crcName} displayName={label} commission={metrics.commission} month={month} photoUrl={photoUrl} /><p className="px-1 text-[11px] text-[#7d8d95]">Foto profissional compartilhada com o Funil de Vendas. A comissão de 0,2% considera somente os fechamentos de Pacientes Ativos desta CRC.</p></div>
     </div>
 
     <section><ActiveWeeklyChart records={own} month={month} weeklyGoal={weeklySalesGoal} title={`Vendas semanais · ${label}`} /></section>
