@@ -3,12 +3,14 @@ import type { TrpcContext } from "./_core/context";
 import { ODONTOMAB_INSURANCE_PLANS } from "../shared/odontomab";
 const mocks = vi.hoisted(() => ({ createValSale: vi.fn(), deleteValSale: vi.fn(), getValSale: vi.fn().mockResolvedValue({ id: 9 }), listValSales: vi.fn().mockResolvedValue([]), saveValPatientPhoto: vi.fn(), updateValSale: vi.fn(), storagePut: vi.fn().mockResolvedValue({ key: "patient-photo.png", url: "/manus-storage/patient-photo.png" }) }));
 vi.mock("./db", () => mocks);
+const crcMocks = vi.hoisted(() => ({ requireOdontomabCrc: vi.fn().mockResolvedValue({ id: "VAL", name: "Vivi" }) }));
+vi.mock("./odontomabCrcDb", () => crcMocks);
 vi.mock("./storage", () => ({ storagePut: mocks.storagePut }));
 import { odontomabRouter } from "./routers/odontomab";
 function ctx(role: "admin" | "user" = "admin"): TrpcContext {
   return { user: { id: 1, openId: "test", name: "Gerência", email: null, loginMethod: "manus", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
-const input = { patientName: "Paciente exemplo", patientType: "active", saleDate: "2026-10-08", value: "2500,50", insurancePlan: "Rede Unna (Odontoprev)" } as const;
+const input = { crcId: "VAL", patientName: "Paciente exemplo", patientType: "active", saleDate: "2026-10-08", value: "2500,50", insurancePlan: "Rede Unna (Odontoprev)" } as const;
 const png = Buffer.from("89504e470d0a1a0a00000000", "hex").toString("base64");
 
 describe("Odontomab — pacientes ativos e novos", () => {
@@ -29,6 +31,13 @@ describe("Odontomab — pacientes ativos e novos", () => {
     await expect(caller.create({ ...input, patientName: " " })).rejects.toThrow();
     await expect(caller.create({ ...input, patientType: undefined } as unknown as Parameters<typeof caller.create>[0])).rejects.toThrow();
     await expect(caller.create({ ...input, insurancePlan: "Outro" } as unknown as Parameters<typeof caller.create>[0])).rejects.toThrow();
+    expect(mocks.createValSale).not.toHaveBeenCalled();
+  });
+  it("exige CRC cadastrada no novo paciente", async () => {
+    const caller = odontomabRouter.createCaller(ctx());
+    await expect(caller.create({ ...input, crcId: "" })).rejects.toThrow();
+    crcMocks.requireOdontomabCrc.mockRejectedValueOnce(new Error("CRC não cadastrada"));
+    await expect(caller.create({ ...input, crcId: "UNKNOWN" })).rejects.toThrow("CRC não cadastrada");
     expect(mocks.createValSale).not.toHaveBeenCalled();
   });
   it("corrige registro existente sem apagar vendas nem tocar a foto", async () => {

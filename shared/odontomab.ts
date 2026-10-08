@@ -7,6 +7,10 @@ export function displayOdontomabInsurance(plan?: string | null) {
   return plan === "Rede Unna" ? "Rede Unna (Odontoprev)" : plan || "Não informado";
 }
 
+export function salesForOdontomabCrc<T extends { crcId: string }>(rows: T[], crcId: string): T[] {
+  return rows.filter(row => row.crcId === crcId);
+}
+
 export function calculateOdontomabMetrics(rows: Array<{ patientType?: string | null; value: string | number }>) {
   const summarize = (items: typeof rows) => {
     const cents = items.reduce((sum, item) => sum + Math.round(Number(item.value) * 100), 0);

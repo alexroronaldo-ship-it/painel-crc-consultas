@@ -4,9 +4,12 @@ import { ODONTOMAB_INSURANCE_PLANS } from "../../shared/odontomab";
 import { protectedProcedure, router } from "../_core/trpc";
 import { createValSale, deleteValSale, getValSale, listValSales, saveValPatientPhoto, updateValSale } from "../db";
 import { storagePut } from "../storage";
+import { requireOdontomabCrc } from "../odontomabCrcDb";
+import { odontomabCrcRouter } from "./odontomabCrc";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda").refine(value => !Number.isNaN(Date.parse(`${value}T12:00:00`)) && new Date(`${value}T12:00:00`).toISOString().slice(0, 10) === value, "Data inválida");
 const patientInput = z.object({
+  crcId: z.string().min(1, "Selecione a CRC").max(32),
   patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
   phone: z.string().trim().max(40).optional(),
   patientType: z.enum(["active", "new"], { error: "Selecione paciente Ativo ou Novo" }),
@@ -18,16 +21,19 @@ const patientInput = z.object({
 });
 
 export const odontomabRouter = router({
+  crcs: odontomabCrcRouter,
   list: protectedProcedure.input(z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional() }).optional()).query(async ({ input }) => {
     const rows = await listValSales(input?.month);
     return rows.map(({ photoKey: _privateKey, ...row }) => row);
   }),
   create: protectedProcedure.input(patientInput).mutation(async ({ ctx, input }) => {
+    await requireOdontomabCrc(input.crcId);
     await createValSale({ ...input, phone: input.phone || null, value: input.value.replace(",", "."), createdBy: ctx.user.id });
     return { success: true } as const;
   }),
   update: protectedProcedure.input(patientInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
     const { id, ...values } = input;
+    await requireOdontomabCrc(values.crcId);
     await updateValSale(id, { ...values, phone: values.phone || null, notes: values.notes || null, value: values.value.replace(",", ".") });
     return { success: true } as const;
   }),

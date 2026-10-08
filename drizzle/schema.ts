@@ -96,8 +96,21 @@ export const crcWeeklyAppointments = mysqlTable("crc_weekly_appointments", {
 export type CrcWeeklyAppointment = typeof crcWeeklyAppointments.$inferSelect;
 export type InsertCrcWeeklyAppointment = typeof crcWeeklyAppointments.$inferInsert;
 
+/** IDs nunca mudam quando o nome ou a foto são corrigidos. VAL preserva Vivi. */
+export const odontomabCrcs = mysqlTable("odontomab_crcs", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  normalizedName: varchar("normalizedName", { length: 160 }).notNull().unique(),
+  photoKey: varchar("photoKey", { length: 512 }),
+  photoUrl: varchar("photoUrl", { length: 768 }),
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const valSales = mysqlTable("val_sales", {
   id: int("id").autoincrement().primaryKey(),
+  crcId: varchar("crcId", { length: 32 }).notNull().default("VAL"),
   patientName: varchar("patientName", { length: 160 }),
   phone: varchar("phone", { length: 40 }),
   patientType: mysqlEnum("patientType", ["active", "new"]),
