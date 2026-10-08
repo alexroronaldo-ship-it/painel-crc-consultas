@@ -1,35 +1,39 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import CrcPortraitCard from "@/components/CrcPortraitCard";
+import OdontomabPatientPhoto from "@/components/OdontomabPatientPhoto";
 import TablePagination from "@/components/TablePagination";
 import ValWeeklyTasks from "@/components/ValWeeklyTasks";
 import WeeklyAppointmentsDashboard from "@/components/WeeklyAppointmentsDashboard";
 import WeeklySpeedDashboard from "@/components/WeeklySpeedDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateGoalProgress } from "@/lib/goal-progress";
 import { paginateItems } from "@/lib/pagination";
 import { trpc } from "@/lib/trpc";
-import { CalendarDays, Check, DollarSign, ListChecks, Loader2, Plus, Target, Trash2 } from "lucide-react";
+import { ODONTOMAB_INSURANCE_PLANS, PATIENT_TYPE_LABELS, calculateOdontomabMetrics, displayOdontomabInsurance } from "@shared/odontomab";
+import { Check, DollarSign, HeartPulse, Loader2, Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
-const formatDuration = (seconds: number) => seconds > 0 ? `${Math.floor(seconds / 60)}min ${String(seconds % 60).padStart(2, "0")}s` : "—";
-const insurancePlans = ["Uniodonto", "Unimed", "Rede Unna", "Amil"] as const;
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+const formatPhone = (value: string) => value.replace(/\D/g, "").replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 15);
+type PatientForm = { patientName: string; phone: string; patientType: "" | "active" | "new"; saleDate: string; value: string; timeMinutes: string; insurancePlan: string; notes: string };
+const emptyForm = (): PatientForm => ({ patientName: "", phone: "", patientType: "", saleDate: "", value: "", timeMinutes: "", insurancePlan: "", notes: "" });
+type SaleRow = { id: number; patientName: string | null; phone: string | null; patientType: "active" | "new" | null; saleDate: string; value: string; totalTimeSeconds: number; insurancePlan: string | null; notes: string | null; photoUrl: string | null };
 
 export default function ValDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [saleDate, setSaleDate] = useState("");
-  const [value, setValue] = useState("");
-  const [totalTimeMinutes, setTotalTimeMinutes] = useState("");
-  const [insurancePlan, setInsurancePlan] = useState("");
-  const [notes, setNotes] = useState("");
+  const [form, setForm] = useState<PatientForm>(emptyForm);
+  const [editForm, setEditForm] = useState<PatientForm>(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [salesPage, setSalesPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState("");
+  const [search, setSearch] = useState("");
   const queryInput = useMemo(() => selectedMonth ? { month: selectedMonth } : undefined, [selectedMonth]);
   const periodLabel = useMemo(() => selectedMonth ? new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(`${selectedMonth}-01T12:00:00`)) : "Todo o período", [selectedMonth]);
   const utils = trpc.useUtils();
@@ -37,62 +41,77 @@ export default function ValDashboard() {
   const sales = salesQuery.data ?? [];
   const profilesQuery = trpc.crcProfiles.list.useQuery();
   const viviPhotoUrl = profilesQuery.data?.find(profile => profile.crcName === "VAL")?.photoUrl;
-  const taskQuery = trpc.weeklyActivities.list.useQuery({ month: selectedMonth || currentMonth }, { enabled: Boolean(selectedMonth) });
-  const viviTasks = (taskQuery.data ?? []).filter(activity => activity.crcName === "VAL");
-  const weeksAtGoal = viviTasks.filter(activity => activity.taskCount >= 100).length;
-  const taskTotal = viviTasks.reduce((sum, activity) => sum + activity.taskCount, 0);
-  const paginatedSales = useMemo(() => paginateItems(sales, salesPage), [sales, salesPage]);
+  const filtered = useMemo(() => sales.filter(sale => {
+    const typeMatches = !typeFilter || (typeFilter === "unclassified" ? !sale.patientType : sale.patientType === typeFilter);
+    const term = search.trim().toLocaleLowerCase("pt-BR");
+    return typeMatches && (!term || `${sale.patientName ?? ""} ${sale.phone ?? ""} ${displayOdontomabInsurance(sale.insurancePlan)} ${sale.notes ?? ""}`.toLocaleLowerCase("pt-BR").includes(term));
+  }), [sales, typeFilter, search]);
+  const paginated = paginateItems(filtered, salesPage);
   const speedRecords = useMemo(() => sales.map(sale => ({ closingDate: sale.saleDate, totalTimeSeconds: sale.totalTimeSeconds })), [sales]);
-  const total = sales.reduce((sum, sale) => sum + Number(sale.value), 0);
+  const metrics = calculateOdontomabMetrics(sales);
+  const total = metrics.total.revenue;
   const progress = calculateGoalProgress(total);
-  const createMutation = trpc.valSales.create.useMutation({ onSuccess: async (_data, variables) => { setSelectedMonth(variables.saleDate.slice(0, 7)); setSalesPage(1); await utils.valSales.list.invalidate(); setSaleDate(""); setValue(""); setTotalTimeMinutes(""); setInsurancePlan(""); setNotes(""); toast.success("Venda da Odontomab salva com sucesso"); }, onError: error => toast.error(error.message) });
-  const deleteMutation = trpc.valSales.deleteOne.useMutation({ onSuccess: async () => { await utils.valSales.list.invalidate(); toast.success("Venda da Odontomab excluída com sucesso"); }, onError: error => toast.error(error.message) });
+  const insuranceMetrics = ODONTOMAB_INSURANCE_PLANS.map(plan => {
+    const own = sales.filter(sale => displayOdontomabInsurance(sale.insurancePlan) === plan);
+    return { plan, count: own.length, revenue: own.reduce((sum, sale) => sum + Number(sale.value), 0) };
+  });
+  const create = trpc.valSales.create.useMutation({
+    onSuccess: async (_data, input) => { setSelectedMonth(input.saleDate.slice(0, 7)); setSalesPage(1); setTypeFilter(""); setSearch(""); setForm(emptyForm()); await utils.valSales.list.invalidate(); toast.success("Paciente da Odontomab registrado", { description: "O tipo, convênio e a comissão foram atualizados. Adicione a foto na linha do paciente." }); },
+    onError: error => toast.error(error.message),
+  });
+  const update = trpc.valSales.update.useMutation({
+    onSuccess: async () => { setEditingId(null); await utils.valSales.list.invalidate(); toast.success("Registro corrigido com sucesso"); }, onError: error => toast.error(error.message),
+  });
+  const deleteOne = trpc.valSales.deleteOne.useMutation({ onSuccess: async () => { await utils.valSales.list.invalidate(); toast.success("Registro excluído com sucesso"); }, onError: error => toast.error(error.message) });
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.FormEvent, values: PatientForm, id?: number) => {
     event.preventDefault();
-    const minutes = Number(totalTimeMinutes.replace(",", "."));
-    if (!Number.isFinite(minutes) || minutes < 0) return toast.error("Informe um tempo de atendimento válido");
-    createMutation.mutate({ saleDate, value, totalTimeSeconds: Math.round(minutes * 60), insurancePlan: insurancePlan ? insurancePlan as (typeof insurancePlans)[number] : undefined, notes: notes || undefined });
+    if (!values.patientType) return toast.error("Selecione paciente Ativo ou Novo");
+    if (!ODONTOMAB_INSURANCE_PLANS.includes(values.insurancePlan as (typeof ODONTOMAB_INSURANCE_PLANS)[number])) return toast.error("Selecione o convênio");
+    const minutes = values.timeMinutes ? Number(values.timeMinutes.replace(",", ".")) : 0;
+    if (!Number.isFinite(minutes) || minutes < 0 || minutes > 1440) return toast.error("Informe um tempo válido");
+    const input = { patientName: values.patientName, phone: values.phone || undefined, patientType: values.patientType, saleDate: values.saleDate, value: values.value, totalTimeSeconds: Math.round(minutes * 60), insurancePlan: values.insurancePlan as (typeof ODONTOMAB_INSURANCE_PLANS)[number], notes: values.notes || undefined };
+    if (id) update.mutate({ ...input, id }); else create.mutate(input);
+  };
+  const openEdit = (sale: SaleRow) => {
+    const plan = displayOdontomabInsurance(sale.insurancePlan);
+    setEditingId(sale.id);
+    setEditForm({ patientName: sale.patientName ?? "", phone: sale.phone ?? "", patientType: sale.patientType ?? "", saleDate: sale.saleDate, value: sale.value.replace(".", ","), timeMinutes: sale.totalTimeSeconds ? String(Number((sale.totalTimeSeconds / 60).toFixed(3))).replace(".", ",") : "", insurancePlan: ODONTOMAB_INSURANCE_PLANS.includes(plan as (typeof ODONTOMAB_INSURANCE_PLANS)[number]) ? plan : "", notes: sale.notes ?? "" });
+  };
+  const confirmDelete = (id: number) => {
+    if (!window.confirm("Excluir somente este registro da Odontomab? Esta ação não pode ser desfeita.")) return;
+    const password = window.prompt("Digite a senha provisória para excluir o registro:");
+    if (password !== null) deleteOne.mutate({ id, password });
   };
 
-  const deleteOne = (id: number) => {
-    const password = window.prompt("Digite a senha para remover esta venda:");
-    if (password === null) return;
-    if (!window.confirm("Remover esta venda da Odontomab?")) return;
-    deleteMutation.mutate({ id, password });
-  };
-
-  return <DashboardLayout><div className="min-h-screen bg-[#f3f8fb] px-4 py-6 sm:px-8 sm:py-8"><div className="mx-auto max-w-7xl">
-    <header className="mb-6 flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><img src="/manus-storage/odontomab-horizontal_dfd3d9f9.png" alt="Odontomab — Excelência ao alcance de todos" className="mb-5 h-16 w-auto max-w-full object-contain object-left sm:h-20" /><h1 className="text-3xl font-semibold tracking-tight text-[#174f6f]">Odontomab</h1><p className="mt-1 text-sm text-[#6e7f88]">Resultados e atividades de Vivi, separados da equipe de fechamento.</p></div><div className="flex flex-col gap-2 sm:flex-row sm:items-end"><div><label htmlFor="val-period-filter" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6e7f88]">Período da dashboard</label><Input id="val-period-filter" type="month" value={selectedMonth} onChange={event => { setSelectedMonth(event.target.value); setSalesPage(1); }} className="h-9 w-44 border-[#d7e5ec] bg-white" /></div><Button type="button" variant="outline" onClick={() => { setSelectedMonth(""); setSalesPage(1); }} className="h-9 border-[#d7e5ec] bg-white text-[#486a7b]">Todo período</Button></div></header>
-
-    <div className="mb-4 flex items-center gap-2 text-xs text-[#6e7f88]"><CalendarDays className="h-4 w-4 text-[#b4a92f]" /><span>Vendas da Odontomab em <strong className="capitalize text-[#174f6f]">{periodLabel}</strong></span></div>
-
-    {salesQuery.isLoading ? <Card className="border-[#d8e5eb] bg-white"><CardContent className="flex items-center justify-center gap-2 py-16 text-[#6e7f88]"><Loader2 className="h-5 w-5 animate-spin" />Carregando vendas da Odontomab...</CardContent></Card> : <>
-      <section className="mb-6"><Card className="border-[#cddfe8] bg-white shadow-sm"><CardContent className="flex items-center justify-between gap-4 p-6"><div><p className="text-sm font-medium text-[#6e7f88]">Vendas totais · Vivi</p><p className="mt-2 text-3xl font-semibold text-[#174f6f]">{currencyFormatter.format(total)}</p><p className="mt-1 text-xs text-[#8b989d]">{sales.length} venda{sales.length === 1 ? "" : "s"} da Odontomab no período · sem somar vendas do Funil de Vendas Orto Implante</p></div><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e5f1f6]"><DollarSign className="h-6 w-6 text-[#2e7da3]" /></div></CardContent></Card></section>
-      <section className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(250px,300px)] lg:items-stretch">
-        <div className="min-w-0 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardContent className="p-5"><p className="text-sm text-[#6e7f88]">Vendas próprias no período</p><p className="mt-4 text-2xl font-semibold text-[#174f6f]">{currencyFormatter.format(total)}</p><p className="mt-1 text-xs text-[#8b989d]">{sales.length} venda{sales.length === 1 ? "" : "s"} da Vivi, sem fechamentos da equipe</p></CardContent></Card>
-            <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-sm text-[#6e7f88]">Meta semanal de tarefas</p><p className="mt-4 text-2xl font-semibold text-[#174f6f]">{weeksAtGoal}/5</p><p className="mt-1 text-xs text-[#8b989d]">{taskTotal} tarefas · mínimo de 100 por semana</p></div><ListChecks className="h-5 w-5 text-[#2e7da3]" /></div></CardContent></Card>
-          </div>
-          <Card className="overflow-hidden border-[#cddfe8] bg-white shadow-sm"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#2e7da3]">Meta individual · Vivi</p><h2 className="mt-1 text-lg font-semibold text-[#174f6f]">Caminho até R$ 75 mil</h2><div className="mt-4 flex items-end justify-between gap-4"><div><p className="text-xs text-[#6e7f88]">Venda acumulada</p><p className="text-xl font-semibold text-[#174f6f]">{currencyFormatter.format(total)}</p></div><div className="text-right"><p className="text-xs text-[#6e7f88]">{progress.reached ? "Acima da meta" : "Falta para a meta"}</p><p className={`text-xl font-semibold ${progress.reached ? "text-[#3f8750]" : "text-[#9b9130]"}`}>{currencyFormatter.format(progress.reached ? progress.surplus : progress.remaining)}</p></div></div><div className="relative mt-4 h-4 overflow-hidden rounded-full bg-[#dfeaf0]"><div className="h-full rounded-full bg-[linear-gradient(90deg,#2e7da3,#d5c83a)]" style={{ width: `${progress.progressPercent}%` }} /><div className="absolute inset-y-0 right-0 w-1 bg-[#174f6f]" /></div><div className="mt-2 flex justify-between text-xs text-[#7d8d95]"><span>{progress.progressPercent.toFixed(1).replace(".", ",")}% concluído</span><span>Meta R$ 75.000,00</span></div></CardContent></Card>
-        </div>
-        <CrcPortraitCard crcName="VAL" displayName="Vivi" revenue={total} month={selectedMonth} photoUrl={viviPhotoUrl} />
-      </section>
-
-      <section className="mb-6"><ValWeeklyTasks month={selectedMonth} /></section>
-
-      <section className="mb-6"><WeeklySpeedDashboard records={speedRecords} enabled={Boolean(selectedMonth)} displayName="Vivi" /></section>
-
-      <section className="mb-6"><WeeklyAppointmentsDashboard month={selectedMonth} crcName="VAL" displayName="Vivi" /></section>
-
-      <Card className="mb-6 border-[#d8e5eb] bg-white shadow-sm"><CardContent className="p-5"><div className="mb-4 flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e5f1f6] text-[#2e7da3]"><Plus className="h-4 w-4" /></div><div><h2 className="font-semibold text-[#174f6f]">Registrar venda da Odontomab</h2><p className="text-xs text-[#7d8d95]">Este registro fica separado dos fechamentos da equipe.</p></div></div><form onSubmit={submit} className="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.7fr_0.7fr_0.7fr_0.9fr_1.4fr_auto]"><Field label="Data da venda"><Input type="date" value={saleDate} onChange={event => setSaleDate(event.target.value)} required /></Field><Field label="Valor (R$)"><Input value={value} onChange={event => setValue(event.target.value.replace(/[^\d,]/g, ""))} placeholder="0,00" inputMode="decimal" required /></Field><Field label="Tempo total (min)"><Input value={totalTimeMinutes} onChange={event => setTotalTimeMinutes(event.target.value.replace(/[^\d,.]/g, ""))} placeholder="Ex.: 1,5" inputMode="decimal" required /></Field><Field label="Convênio"><select value={insurancePlan} onChange={event => setInsurancePlan(event.target.value)} className="h-10 w-full rounded-md border border-[#d7e5ec] bg-[#fbfdfe] px-3 text-sm"><option value="">Particular / sem convênio</option>{insurancePlans.map(plan => <option key={plan} value={plan}>{plan}</option>)}</select></Field><Field label="Observação"><Textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Descrição opcional" className="min-h-10 resize-none" /></Field><div className="flex items-end md:col-span-2 xl:col-span-1"><Button type="submit" disabled={createMutation.isPending} className="h-10 w-full bg-[#2e7da3] hover:bg-[#246989]">{createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="mr-2 h-4 w-4" />Adicionar</>}</Button></div></form></CardContent></Card>
-
-      <Card className="overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-base text-[#174f6f]">Histórico de vendas da Odontomab</CardTitle><p className="text-xs text-[#84949c]">Exibindo até 5 vendas por página.</p></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-y border-[#e5edf1] bg-[#f7fafb] text-left text-xs text-[#6e7f88]"><th className="px-5 py-3">Data</th><th className="px-5 py-3">Convênio</th><th className="px-5 py-3">Tempo</th><th className="px-5 py-3">Observação</th><th className="px-5 py-3 text-right">Valor</th><th className="px-5 py-3 text-right">Ação</th></tr></thead><tbody className="divide-y divide-[#edf2f4]">{sales.length === 0 ? <tr><td colSpan={6} className="px-5 py-12 text-center text-[#8b989d]">Nenhuma venda da Odontomab registrada neste período.</td></tr> : paginatedSales.items.map(sale => <tr key={sale.id}><td className="px-5 py-3 font-medium text-[#174f6f]">{dateFormatter.format(new Date(`${sale.saleDate}T12:00:00`))}</td><td className="px-5 py-3"><span className="rounded-full bg-[#eef7fa] px-2.5 py-1 text-xs font-medium text-[#2e718f]">{sale.insurancePlan || "Particular"}</span></td><td className="px-5 py-3 font-medium text-[#486a7b]">{formatDuration(sale.totalTimeSeconds)}</td><td className="px-5 py-3 text-[#617782]">{sale.notes || "—"}</td><td className="px-5 py-3 text-right font-semibold text-[#2e7da3]">{currencyFormatter.format(Number(sale.value))}</td><td className="px-5 py-3 text-right"><Button type="button" variant="outline" onClick={() => deleteOne(sale.id)} className="h-8 border-[#e2baba] px-2 text-[#a14f4f] hover:bg-[#fff0f0]"><Trash2 className="h-3.5 w-3.5" /></Button></td></tr>)}</tbody></table></div><TablePagination page={paginatedSales.page} totalItems={paginatedSales.totalItems} label="vendas" onPageChange={setSalesPage} /></CardContent></Card>
-    </>}
+  return <DashboardLayout><div className="min-h-screen bg-[#f3f8fb] px-4 py-6 sm:px-8 sm:py-8"><div className="mx-auto max-w-7xl space-y-6">
+    <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><img src="/manus-storage/odontomab-horizontal_dfd3d9f9.png" alt="Odontomab — Excelência ao alcance de todos" className="mb-5 h-16 w-auto max-w-full object-contain object-left sm:h-20" /><h1 className="text-3xl font-semibold tracking-tight text-[#174f6f]">Odontomab (Ativos &amp; Novo)</h1><p className="mt-1 text-sm text-[#6e7f88]">Pacientes, convênios e comissão de Vivi · dados exclusivos da Odontomab.</p></div><div><label htmlFor="val-period-filter" className="mb-1 block text-xs font-semibold uppercase text-[#6e7f88]">Período da dashboard</label><div className="flex gap-2"><Input id="val-period-filter" type="month" value={selectedMonth} onChange={event => { setSelectedMonth(event.target.value); setSalesPage(1); }} className="h-9 w-44 bg-white" /><Button type="button" variant="outline" onClick={() => { setSelectedMonth(""); setSalesPage(1); }} className="h-9 bg-white">Todo período</Button></div></div></header>
+    <p className="text-xs capitalize text-[#6e7f88]">Resultados de <strong className="text-[#174f6f]">{periodLabel}</strong> · comissão fixa de 0,2%</p>
+    {salesQuery.error && <div role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">Não foi possível carregar os registros: {salesQuery.error.message}<Button type="button" size="sm" variant="outline" onClick={() => salesQuery.refetch()} className="ml-3">Tentar novamente</Button></div>}
+    <Card className="border-[#cddfe8] bg-white shadow-sm"><CardContent className="flex flex-col justify-between gap-4 p-6 sm:flex-row sm:items-center"><div><p className="text-sm text-[#6e7f88]">Vendas totais · Vivi</p><p className="mt-2 text-3xl font-semibold text-[#174f6f]">{salesQuery.isLoading ? "Carregando…" : currency.format(total)}</p><p className="mt-1 text-xs text-[#8b989d]">{sales.length} registros no período · não soma as páginas Orto Implante</p></div><div className="rounded-xl bg-[#eef7fa] px-5 py-3"><p className="text-xs text-[#6e7f88]">Comissão do período · 0,2%</p><p className="mt-1 text-2xl font-bold text-[#176187]">{currency.format(metrics.total.commission)}</p></div></CardContent></Card>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(250px,300px)]">
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2"><PatientSummary title="Pacientes ativos" result={metrics.active} icon="active" onView={() => { setTypeFilter("active"); setSalesPage(1); }} /><PatientSummary title="Pacientes novos" result={metrics.new} icon="new" onView={() => { setTypeFilter("new"); setSalesPage(1); }} /></div>
+        {metrics.unclassified.count > 0 && <div className="rounded-xl border border-[#ebd7a0] bg-[#fff8e5] p-4 text-xs text-[#8b6720]"><p className="font-semibold">{metrics.unclassified.count} registro(s) antigo(s) sem classificação · {currency.format(metrics.unclassified.revenue)}</p><p className="mt-1">As vendas foram preservadas no total e na comissão. Use “Corrigir” para informar nome, Ativo/Novo e convênio; não atribuímos um tipo automaticamente.</p><Button type="button" size="sm" variant="outline" onClick={() => { setTypeFilter("unclassified"); setSalesPage(1); }} className="mt-2 border-[#dfc789]">Ver registros para corrigir</Button></div>}
+        <Card className="border-[#cddfe8] bg-white shadow-sm"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#2e7da3]">Meta individual · Vivi</p><h2 className="mt-1 text-lg font-semibold text-[#174f6f]">Caminho até R$ 75 mil</h2><div className="mt-4 flex justify-between gap-3"><div><p className="text-xs text-[#6e7f88]">Vendas do período</p><p className="text-xl font-semibold text-[#174f6f]">{currency.format(total)}</p></div><div className="text-right"><p className="text-xs text-[#6e7f88]">{progress.reached ? "Acima da meta" : "Falta para a meta"}</p><p className="text-xl font-semibold text-[#9b9130]">{currency.format(progress.reached ? progress.surplus : progress.remaining)}</p></div></div><div className="mt-4 h-4 overflow-hidden rounded-full bg-[#dfeaf0]"><div className="h-full rounded-full bg-[linear-gradient(90deg,#2e7da3,#d5c83a)]" style={{ width: `${progress.progressPercent}%` }} /></div><div className="mt-2 flex justify-between text-xs text-[#7d8d95]"><span>{progress.progressPercent.toFixed(1).replace(".", ",")}% concluído</span><span>Meta R$ 75.000,00</span></div><p className="mt-3 text-xs text-[#6e7f88]">A comissão permanece <strong>0,2%</strong>, antes e depois da meta.</p></CardContent></Card>
+      </div>
+      <CrcPortraitCard crcName="VAL" displayName="Vivi" commission={metrics.total.commission} month={selectedMonth} photoUrl={viviPhotoUrl} />
+    </div>
+    <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-lg text-[#174f6f]">Acompanhamento por convênio</CardTitle><p className="text-xs text-[#7d8d95]">Pacientes e vendas no período selecionado.</p></CardHeader><CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{insuranceMetrics.map(item => <div key={item.plan} className="rounded-xl border border-[#dce8ed] bg-[#f7fafb] p-4"><p className="min-h-8 text-xs font-semibold text-[#486a7b]">{item.plan}</p><p className="mt-2 text-2xl font-semibold text-[#174f6f]">{item.count}</p><p className="text-[11px] text-[#7d8d95]">registros</p><p className="mt-2 text-sm font-semibold text-[#2e7da3]">{currency.format(item.revenue)}</p></div>)}</CardContent></Card>
+    <ValWeeklyTasks month={selectedMonth} />
+    <WeeklySpeedDashboard records={speedRecords} enabled={Boolean(selectedMonth)} displayName="Vivi" />
+    <WeeklyAppointmentsDashboard month={selectedMonth} crcName="VAL" displayName="Vivi" />
+    <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2 text-lg text-[#174f6f]"><Plus className="h-5 w-5" />Registrar paciente da Odontomab</CardTitle><p className="text-xs text-[#7d8d95]">Preencha o nome, selecione Ativo ou Novo e o convênio. A foto pode ser adicionada depois na linha do paciente.</p></CardHeader><CardContent><PatientFields values={form} setValues={setForm} onSubmit={event => submit(event, form)} pending={create.isPending} /></CardContent></Card>
+    <Card className="overflow-hidden border-[#d8e5eb] bg-white shadow-sm"><CardHeader><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center"><div><CardTitle className="text-base text-[#174f6f]">Pacientes e vendas da Odontomab</CardTitle><p className="mt-1 text-xs text-[#84949c]">Cinco registros por página · foto, correção e exclusão individual.</p></div><div className="flex flex-col gap-2 sm:flex-row"><select aria-label="Filtrar tipo de paciente" value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setSalesPage(1); }} className="h-9 rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Ativos e novos</option><option value="active">Ativos</option><option value="new">Novos</option><option value="unclassified">Não classificados</option></select><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8fa1aa]" /><Input value={search} onChange={e => { setSearch(e.target.value); setSalesPage(1); }} placeholder="Nome, telefone ou convênio" className="h-9 pl-9 sm:w-64" /></div></div></div></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[1180px] text-left text-sm"><thead className="border-y border-[#e5edf1] bg-[#f7fafb] text-xs text-[#6e7f88]"><tr><th className="px-4 py-3">Foto</th><th className="px-4 py-3">Paciente</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Telefone</th><th className="px-4 py-3">Convênio</th><th className="px-4 py-3">Data</th><th className="px-4 py-3">Observação</th><th className="px-4 py-3 text-right">Valor</th><th className="sticky right-0 z-10 bg-[#f7fafb] px-4 py-3">Ações</th></tr></thead><tbody className="divide-y divide-[#edf2f4]">{salesQuery.isLoading ? <tr><td colSpan={9} className="py-12 text-center text-[#8b989d]">Carregando...</td></tr> : !filtered.length ? <tr><td colSpan={9} className="py-12 text-center text-[#8b989d]">Nenhum registro encontrado neste período.</td></tr> : paginated.items.map(sale => <tr key={sale.id} className="hover:bg-[#fbfdfe]"><td className="px-4 py-3"><OdontomabPatientPhoto id={sale.id} name={sale.patientName || `Paciente #${sale.id}`} photoUrl={sale.photoUrl} /></td><td className="px-4 py-3 font-semibold text-[#174f6f]">{sale.patientName || "Nome não informado"}</td><td className="px-4 py-3"><span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${sale.patientType === "active" ? "bg-[#e8f4f8] text-[#2e718f]" : sale.patientType === "new" ? "bg-[#fff7df] text-[#9a6b12]" : "bg-[#f0f1f2] text-[#7d8d95]"}`}>{sale.patientType ? PATIENT_TYPE_LABELS[sale.patientType] : "Não classificado"}</span></td><td className="px-4 py-3 text-[#617782]">{sale.phone || "—"}</td><td className="px-4 py-3 text-xs text-[#486a7b]">{displayOdontomabInsurance(sale.insurancePlan)}</td><td className="px-4 py-3 whitespace-nowrap">{new Date(`${sale.saleDate}T12:00:00`).toLocaleDateString("pt-BR")}</td><td className="max-w-48 px-4 py-3 text-xs text-[#617782]">{sale.notes || "—"}</td><td className="px-4 py-3 text-right font-semibold text-[#2e7da3]">{currency.format(Number(sale.value))}</td><td className="sticky right-0 z-[5] bg-white px-4 py-3 shadow-[-8px_0_12px_-12px_rgba(23,79,111,0.45)]"><div className="flex gap-1.5"><Button type="button" size="sm" variant="outline" onClick={() => openEdit(sale)} className="h-8 text-[#2e718f]"><Pencil className="mr-1 h-3.5 w-3.5" />Corrigir</Button><Button type="button" size="sm" variant="outline" onClick={() => confirmDelete(sale.id)} disabled={deleteOne.isPending} className="h-8 text-[#a14f4f]"><Trash2 className="mr-1 h-3.5 w-3.5" />Excluir</Button></div></td></tr>)}</tbody></table></div><TablePagination page={paginated.page} totalItems={paginated.totalItems} label="pacientes" onPageChange={setSalesPage} /></CardContent></Card>
+    <Dialog open={editingId !== null} onOpenChange={open => { if (!open) setEditingId(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto bg-white sm:max-w-3xl"><DialogHeader><DialogTitle>Corrigir paciente · Odontomab</DialogTitle><DialogDescription>Atualize nome, tipo, convênio ou dados da venda sem apagar o registro nem a foto.</DialogDescription></DialogHeader><PatientFields values={editForm} setValues={setEditForm} onSubmit={event => submit(event, editForm, editingId ?? undefined)} pending={update.isPending} editing onCancel={() => setEditingId(null)} /></DialogContent></Dialog>
   </div></div></DashboardLayout>;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="mb-1.5 block text-xs font-semibold text-[#486a7b]">{label}</label>{children}</div>;
+function PatientSummary({ title, result, icon, onView }: { title: string; result: { count: number; revenue: number; commission: number }; icon: "active" | "new"; onView: () => void }) {
+  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardContent className="p-5"><div className="flex items-center justify-between"><p className="font-semibold text-[#174f6f]">{title}</p>{icon === "active" ? <HeartPulse className="h-5 w-5 text-[#2e7da3]" /> : <UserPlus className="h-5 w-5 text-[#b4a92f]" />}</div><p className="mt-4 text-3xl font-semibold text-[#174f6f]">{result.count}</p><p className="text-xs text-[#7d8d95]">registros no período</p><div className="mt-3 flex justify-between gap-3 border-t border-[#edf2f4] pt-3"><div><p className="text-[11px] text-[#7d8d95]">Vendas</p><p className="text-lg font-semibold text-[#2e7da3]">{currency.format(result.revenue)}</p></div><div className="text-right"><p className="text-[11px] text-[#7d8d95]">Comissão · 0,2%</p><p className="text-lg font-bold text-[#176187]">{currency.format(result.commission)}</p></div></div><Button type="button" variant="outline" size="sm" onClick={onView} className="mt-3 w-full text-[#2e718f]">Ver registros</Button></CardContent></Card>;
 }
+function PatientFields({ values, setValues, onSubmit, pending, editing, onCancel }: { values: PatientForm; setValues: (values: PatientForm) => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void; pending: boolean; editing?: boolean; onCancel?: () => void }) {
+  const set = (field: keyof PatientForm, value: string) => setValues({ ...values, [field]: value });
+  return <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Field label="Nome do paciente *"><Input value={values.patientName} onChange={e => set("patientName", e.target.value)} required minLength={2} maxLength={160} placeholder="Nome completo" /></Field><Field label="Paciente Ativo ou Novo *"><select value={values.patientType} onChange={e => set("patientType", e.target.value)} required className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Selecionar</option><option value="active">Ativo</option><option value="new">Novo</option></select></Field><Field label="Convênio *"><select value={values.insurancePlan} onChange={e => set("insurancePlan", e.target.value)} required className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Selecionar</option>{ODONTOMAB_INSURANCE_PLANS.map(plan => <option key={plan} value={plan}>{plan}</option>)}</select></Field><Field label="Telefone (opcional)"><Input value={values.phone} onChange={e => set("phone", formatPhone(e.target.value))} placeholder="(11) 99999-0000" /></Field><Field label="Data da venda *"><Input type="date" value={values.saleDate} onChange={e => set("saleDate", e.target.value)} required /></Field><Field label="Valor (R$) *"><Input value={values.value} onChange={e => set("value", e.target.value.replace(/[^\d,]/g, ""))} required inputMode="decimal" placeholder="0,00" /></Field><Field label="Tempo total (min) · opcional"><Input value={values.timeMinutes} onChange={e => set("timeMinutes", e.target.value.replace(/[^\d,.]/g, ""))} inputMode="decimal" placeholder="Ex.: 1,5" /></Field><Field label="Observação"><Textarea value={values.notes} onChange={e => set("notes", e.target.value)} placeholder="Descrição opcional" maxLength={1000} className="min-h-10 resize-none" /></Field><div className="flex gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">{editing && <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>}<Button type="submit" disabled={pending} className="w-full bg-[#2e7da3] hover:bg-[#246989] lg:w-auto">{pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}{editing ? "Salvar correção" : "Adicionar paciente"}</Button></div></form>;
+}
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block space-y-1.5 text-xs font-semibold text-[#486a7b]">{label}{children}</label>; }

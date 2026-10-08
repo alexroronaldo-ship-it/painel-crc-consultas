@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ACTIVE_CRC_LABELS, calculateActiveMetrics, type ActiveCrcName } from "@/lib/ortho-active";
 import { trpc } from "@/lib/trpc";
-import { getWeekOfMonthByDate } from "@/lib/weekly-sales";
-import { Clock3, Pencil, Target } from "lucide-react";
+import { Pencil, Target } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -29,7 +28,6 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalMonth, setGoalMonth] = useState("");
   const [goalWeekly, setGoalWeekly] = useState("");
-  const [goalTime, setGoalTime] = useState("");
   const [weeklyMode, setWeeklyMode] = useState<"tasks" | "appointments" | null>(null);
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [weeklyCount, setWeeklyCount] = useState("");
@@ -49,7 +47,6 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
     if (!month) return toast.error("Selecione um mês antes de definir metas");
     setGoalMonth(goal?.monthlyGoal?.replace(".", ",") ?? "");
     setGoalWeekly(goal?.weeklySalesGoal?.replace(".", ",") ?? "");
-    setGoalTime(goal?.timeGoalSeconds ? String(Number((goal.timeGoalSeconds / 60).toFixed(2))).replace(".", ",") : "");
     setGoalOpen(true);
   };
   const openWeek = (mode: "tasks" | "appointments", week: number) => {
@@ -62,9 +59,7 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
   };
   const submitGoal = (event: React.FormEvent) => {
     event.preventDefault();
-    const seconds = goalTime.trim() ? Math.round(Number(goalTime.replace(",", ".")) * 60) : undefined;
-    if (seconds !== undefined && (!Number.isInteger(seconds) || seconds < 1 || seconds > 86400)) return toast.error("Informe tempo-alvo válido em minutos");
-    saveGoal.mutate({ crcName, month, monthlyGoal: goalMonth || undefined, weeklySalesGoal: goalWeekly || undefined, timeGoalSeconds: seconds });
+    saveGoal.mutate({ crcName, month, monthlyGoal: goalMonth || undefined, weeklySalesGoal: goalWeekly || undefined });
   };
   const submitWeekly = (event: React.FormEvent) => {
     event.preventDefault();
@@ -73,7 +68,6 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
     if (weeklyMode === "tasks") saveTasks.mutate({ crcName, month, week: selectedWeek, taskCount: count, taskGoal: target, description: description || undefined });
     if (weeklyMode === "appointments") saveAppointments.mutate({ crcName, month, week: selectedWeek, appointmentCount: count, appointmentGoal: target });
   };
-  const timeWeeks = weeks.map(week => { const timed = own.filter(item => getWeekOfMonthByDate(item.closingDate) === week && item.totalTimeSeconds > 0); return { week, average: timed.length ? Math.round(timed.reduce((sum, item) => sum + item.totalTimeSeconds, 0) / timed.length) : null, count: timed.length }; });
 
   return <div className="space-y-5">
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(250px,320px)]">
@@ -81,19 +75,18 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
         <Stat label={`Vendas · ${label}`} value={money.format(metrics.revenue)} detail={`${metrics.closedCount} fechamentos neste módulo`} />
         <Stat label="Comissão do período · 0,2%" value={money.format(metrics.commission)} detail="Calculada somente sobre vendas fechadas desta CRC" />
         <Stat label="Meta mensal própria" value={monthlyGoal ? money.format(monthlyGoal) : "Não definida"} detail={monthlyGoal ? metrics.revenue >= monthlyGoal ? `Meta superada em ${money.format(metrics.revenue - monthlyGoal)}` : `Faltam ${money.format(monthlyGoal - metrics.revenue)}` : "Configure sem afetar o Funil de Vendas"} />
-        <Stat label="Tempo médio registrado" value={metrics.averageTimeSeconds === null ? "Sem dados" : `${(metrics.averageTimeSeconds / 60).toFixed(1).replace(".", ",")} min`} detail={goal?.timeGoalSeconds ? `Meta própria: menos de ${(goal.timeGoalSeconds / 60).toFixed(1).replace(".", ",")} min` : "Meta de tempo não definida"} />
+        <Stat label="Pacientes registrados" value={String(metrics.count)} detail="Somente Wisllayny e JAYZA" />
       </div>
       <Card className="border-[#cddfe8] bg-white shadow-sm"><CardHeader><div className="flex items-center justify-between gap-2"><CardTitle className="flex items-center gap-2 text-base text-[#174f6f]"><Target className="h-4 w-4 text-[#b4a92f]" />Metas de {label}</CardTitle>{isAdmin && <Button type="button" variant="outline" size="sm" onClick={openGoal} disabled={!month}><Pencil className="mr-1.5 h-3.5 w-3.5" />Configurar</Button>}</div></CardHeader><CardContent className="space-y-4"><div><div className="flex justify-between gap-2 text-xs text-[#6e7f88]"><span>Faturamento mensal</span><span>{monthlyGoal ? money.format(monthlyGoal) : "A definir"}</span></div><div className="mt-2 h-3 overflow-hidden rounded-full bg-[#e3eef2]"><div className="h-full bg-[#2e7da3]" style={{ width: `${monthlyGoal ? pct(metrics.revenue, monthlyGoal) : 0}%` }} /></div></div><p className="text-xs text-[#6e7f88]">Meta semanal de vendas: <strong className="text-[#174f6f]">{weeklySalesGoal ? money.format(weeklySalesGoal) : "a definir"}</strong></p><p className="text-xs text-[#6e7f88]">Valores independentes das metas e comissões da página anterior.</p></CardContent></Card>
     </div>
 
     <section><ActiveWeeklyChart records={own} month={month} weeklyGoal={weeklySalesGoal} title={`Vendas semanais · ${label}`} /></section>
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid gap-4 lg:grid-cols-2">
       <Card className="border-[#d8e5eb] bg-white shadow-sm lg:col-span-1"><CardHeader><CardTitle className="text-base text-[#174f6f]">Tarefas · S1–S5</CardTitle><p className="text-xs text-[#7d8d95]">Meta editável por semana · {label}</p></CardHeader><CardContent className="space-y-2">{weeks.map(week => { const row = weekly.find(item => item.crcName === crcName && item.week === week); return <WeekButton key={week} title={`S${week}`} amount={row?.taskCount ?? null} target={row?.taskGoal ?? null} description={row?.description} onClick={() => openWeek("tasks", week)} disabled={!month} />; })}</CardContent></Card>
-      <Card className="border-[#d8e5eb] bg-white shadow-sm lg:col-span-1"><CardHeader><CardTitle className="flex items-center gap-2 text-base text-[#174f6f]"><Clock3 className="h-4 w-4" />Tempo · S1–S5</CardTitle><p className="text-xs text-[#7d8d95]">Média dos atendimentos com tempo informado</p></CardHeader><CardContent className="space-y-2">{timeWeeks.map(item => <div key={item.week} className="flex items-center justify-between rounded-lg border border-[#dce8ed] p-3 text-sm"><span className="font-semibold text-[#174f6f]">S{item.week}</span><span className={item.average !== null && goal?.timeGoalSeconds ? item.average < goal.timeGoalSeconds ? "font-semibold text-[#2f7b40]" : "font-semibold text-[#9a6b12]" : "text-[#7d8d95]"}>{item.average === null ? "Sem dados" : `${(item.average / 60).toFixed(1).replace(".", ",")} min`}</span><span className="text-xs text-[#8b989d]">{item.count} medidos</span></div>)}</CardContent></Card>
       <Card className="border-[#d8e5eb] bg-white shadow-sm lg:col-span-1"><CardHeader><CardTitle className="text-base text-[#174f6f]">Agendamentos · S1–S5</CardTitle><p className="text-xs text-[#7d8d95]">Meta editável por semana · {label}</p></CardHeader><CardContent className="space-y-2">{weeks.map(week => { const row = weekly.find(item => item.crcName === crcName && item.week === week); return <WeekButton key={week} title={`S${week}`} amount={row?.appointmentCount ?? null} target={row?.appointmentGoal ?? null} onClick={() => openWeek("appointments", week)} disabled={!month} />; })}</CardContent></Card>
     </div>
 
-    <Dialog open={goalOpen} onOpenChange={setGoalOpen}><DialogContent className="bg-white sm:max-w-lg"><DialogHeader><DialogTitle>Metas próprias · {label}</DialogTitle><DialogDescription>Metas do mês selecionado, sem alterar o Funil de Vendas Orto Implante. Deixe vazio para não definir uma meta.</DialogDescription></DialogHeader><form onSubmit={submitGoal} className="space-y-4"><Field label="Meta mensal de vendas (R$)"><Input value={goalMonth} onChange={e => setGoalMonth(moneyInput(e.target.value))} placeholder="Ex.: 30000,00" inputMode="decimal" /></Field><Field label="Meta semanal de vendas (R$)"><Input value={goalWeekly} onChange={e => setGoalWeekly(moneyInput(e.target.value))} placeholder="Ex.: 7500,00" inputMode="decimal" /></Field><Field label="Meta de tempo médio (minutos)"><Input value={goalTime} onChange={e => setGoalTime(e.target.value.replace(/[^\d,.]/g, ""))} placeholder="Ex.: 2" inputMode="decimal" /></Field><DialogFooter><Button type="button" variant="outline" onClick={() => setGoalOpen(false)}>Cancelar</Button><Button type="submit" disabled={saveGoal.isPending}>Salvar metas</Button></DialogFooter></form></DialogContent></Dialog>
+    <Dialog open={goalOpen} onOpenChange={setGoalOpen}><DialogContent className="bg-white sm:max-w-lg"><DialogHeader><DialogTitle>Metas próprias · {label}</DialogTitle><DialogDescription>Metas do mês selecionado, sem alterar o Funil de Vendas Orto Implante. Deixe vazio para não definir uma meta.</DialogDescription></DialogHeader><form onSubmit={submitGoal} className="space-y-4"><Field label="Meta mensal de vendas (R$)"><Input value={goalMonth} onChange={e => setGoalMonth(moneyInput(e.target.value))} placeholder="Ex.: 30000,00" inputMode="decimal" /></Field><Field label="Meta semanal de vendas (R$)"><Input value={goalWeekly} onChange={e => setGoalWeekly(moneyInput(e.target.value))} placeholder="Ex.: 7500,00" inputMode="decimal" /></Field><DialogFooter><Button type="button" variant="outline" onClick={() => setGoalOpen(false)}>Cancelar</Button><Button type="submit" disabled={saveGoal.isPending}>Salvar metas</Button></DialogFooter></form></DialogContent></Dialog>
     <Dialog open={weeklyMode !== null} onOpenChange={open => { if (!open) setWeeklyMode(null); }}><DialogContent className="bg-white sm:max-w-lg"><DialogHeader><DialogTitle>{weeklyMode === "tasks" ? "Tarefas realizadas" : "Agendamentos realizados"} · {label} · S{selectedWeek}</DialogTitle><DialogDescription>Registre os dados desta semana somente na página Pacientes Ativos. Meta opcional e independente.</DialogDescription></DialogHeader><form onSubmit={submitWeekly} className="space-y-4"><Field label="Quantidade realizada"><Input type="number" min="0" step="1" value={weeklyCount} onChange={e => setWeeklyCount(e.target.value)} required /></Field><Field label="Meta desta semana (opcional)"><Input type="number" min="1" step="1" value={weeklyTarget} onChange={e => setWeeklyTarget(e.target.value)} placeholder="Defina uma meta diferente por semana" /></Field>{weeklyMode === "tasks" && <Field label="Tarefas realizadas"><Textarea value={description} onChange={e => setDescription(e.target.value)} className="min-h-24" placeholder="Descritivo das atividades" /></Field>}<DialogFooter><Button type="button" variant="outline" onClick={() => setWeeklyMode(null)}>Cancelar</Button><Button type="submit" disabled={saveTasks.isPending || saveAppointments.isPending}>Salvar semana</Button></DialogFooter></form></DialogContent></Dialog>
   </div>;
 }

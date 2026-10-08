@@ -1,11 +1,11 @@
 export const ACTIVE_COMMISSION_RATE = 0.002;
-export const ACTIVE_CRC_LABELS = { WISLLAYNI: "Wisllayny", JAYZA: "JAYZA", JESSIKA: "Jéssika" } as const;
+export const ACTIVE_CRC_LABELS = { WISLLAYNI: "Wisllayny", JAYZA: "JAYZA" } as const;
 export type ActiveCrcName = keyof typeof ACTIVE_CRC_LABELS;
 export type ActiveSale = { crcName: string; value: string | number; totalTimeSeconds: number; internalStatus: string };
 
 /** Somente registros efetivamente fechados desta página geram faturamento e comissão. */
 export function calculateActiveMetrics(records: ActiveSale[], crcName?: ActiveCrcName) {
-  const own = records.filter(item => !crcName || item.crcName === crcName);
+  const own = records.filter(item => item.crcName in ACTIVE_CRC_LABELS && (!crcName || item.crcName === crcName));
   const closed = own.filter(item => item.internalStatus === "closed");
   const revenue = closed.reduce((sum, item) => sum + Number(item.value), 0);
   const measured = own.filter(item => item.totalTimeSeconds > 0);

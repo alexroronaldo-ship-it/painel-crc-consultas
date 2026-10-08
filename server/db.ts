@@ -192,7 +192,7 @@ export async function listValSales(month?: string) {
   const db = await getDb();
   if (!db) return [];
   if (!month) {
-    return db.select().from(valSales).orderBy(desc(valSales.saleDate), desc(valSales.createdAt)).limit(500);
+    return db.select().from(valSales).orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
   }
 
   const [year, monthNumber] = month.split("-").map(Number);
@@ -204,8 +204,7 @@ export async function listValSales(month?: string) {
     .select()
     .from(valSales)
     .where(and(gte(valSales.saleDate, `${month}-01`), lt(valSales.saleDate, `${nextMonth}-01`)))
-    .orderBy(desc(valSales.saleDate), desc(valSales.createdAt))
-    .limit(500);
+    .orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
 }
 
 export async function createValSale(input: InsertValSale) {
@@ -218,4 +217,25 @@ export async function deleteValSale(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.delete(valSales).where(eq(valSales.id, id));
+}
+
+export async function getValSale(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const [sale] = await db.select().from(valSales).where(eq(valSales.id, id)).limit(1);
+  if (!sale) throw new Error("Paciente não encontrado");
+  return sale;
+}
+
+export async function updateValSale(id: number, input: Pick<InsertValSale, "patientName" | "phone" | "patientType" | "saleDate" | "value" | "totalTimeSeconds" | "insurancePlan" | "notes">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  await getValSale(id);
+  await db.update(valSales).set(input).where(eq(valSales.id, id));
+}
+
+export async function saveValPatientPhoto(id: number, photoKey: string, photoUrl: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  await db.update(valSales).set({ photoKey, photoUrl }).where(eq(valSales.id, id));
 }

@@ -4,13 +4,13 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createCampaign, createClosure, createValSale, deleteClosure, deleteEmptyCampaign, deleteValSale, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateCampaign, updateClosureTime } from "./db";
+import { createCampaign, createClosure, deleteClosure, deleteEmptyCampaign, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateCampaign, updateClosureTime } from "./db";
 import { storagePut } from "./storage";
 import { orthoActiveRouter } from "./routers/orthoActive";
+import { odontomabRouter } from "./routers/odontomab";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
-const insurancePlans = ["Uniodonto", "Unimed", "Rede Unna", "Amil"] as const;
 const campaignInput = z.object({
   name: z.string().trim().min(2, "Informe o nome da campanha").max(160),
   origin: z.string().trim().min(2, "Informe a origem da campanha").max(160),
@@ -150,28 +150,7 @@ export const appRouter = router({
       return { success: true } as const;
     }),
   }),
-  valSales: router({
-    list: protectedProcedure
-      .input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/).optional() }).optional())
-      .query(({ input }) => listValSales(input?.month)),
-    create: protectedProcedure.input(z.object({
-      saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda"),
-      value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
-      totalTimeSeconds: z.number().int().min(0).max(86400),
-      insurancePlan: z.enum(insurancePlans).optional(),
-      notes: z.string().trim().max(1000).optional(),
-    })).mutation(async ({ ctx, input }) => {
-      await createValSale({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
-      return { success: true } as const;
-    }),
-    deleteOne: protectedProcedure
-      .input(z.object({ id: z.number().int().positive(), password: z.string() }))
-      .mutation(async ({ input }) => {
-        if (input.password !== "0000") throw new Error("Senha provisória incorreta");
-        await deleteValSale(input.id);
-        return { success: true } as const;
-      }),
-  }),
+  valSales: odontomabRouter,
 });
 
 export type AppRouter = typeof appRouter;

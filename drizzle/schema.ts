@@ -98,6 +98,11 @@ export type InsertCrcWeeklyAppointment = typeof crcWeeklyAppointments.$inferInse
 
 export const valSales = mysqlTable("val_sales", {
   id: int("id").autoincrement().primaryKey(),
+  patientName: varchar("patientName", { length: 160 }),
+  phone: varchar("phone", { length: 40 }),
+  patientType: mysqlEnum("patientType", ["active", "new"]),
+  photoKey: varchar("photoKey", { length: 512 }),
+  photoUrl: varchar("photoUrl", { length: 768 }),
   saleDate: varchar("saleDate", { length: 10 }).notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { createActiveCampaign, createActivePatient, deleteActivePatient, deleteEmptyActiveCampaign, listActiveCampaigns, listActiveGoals, listActivePatients, listActiveWeeks, saveActiveAppointments, saveActiveGoal, saveActiveTasks, updateActiveCampaign, updateActivePatientTime } from "../orthoActiveDb";
 
-export const activeCrcNames = ["WISLLAYNI", "JAYZA", "JESSIKA"] as const;
+export const activeCrcNames = ["WISLLAYNI", "JAYZA"] as const;
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida").refine(value => !Number.isNaN(Date.parse(`${value}T12:00:00`)) && new Date(`${value}T12:00:00`).toISOString().slice(0, 10) === value, "Data inexistente");
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Informe um mês válido");
 const money = z.string().regex(/^\d{1,10}(?:,\d{1,2})?$/, "Informe um valor em reais (ex.: 1500,00)");
@@ -25,7 +25,7 @@ export const orthoActiveRouter = router({
     create: protectedProcedure.input(z.object({
       crcName: crc, patientName: z.string().trim().min(2).max(160), phone: z.string().trim().min(8).max(40),
       closingDate: date, closedItem: z.string().trim().min(2).max(5000), value: money,
-      totalTimeSeconds: z.number().int().min(0).max(86400),
+      totalTimeSeconds: z.number().int().min(0).max(86400).default(0),
       internalStatus: z.enum(["closed", "follow_up", "not_closed"]), internalNotes: z.string().trim().max(5000).optional(),
       campaignId: z.number().int().positive().optional(),
     })).mutation(async ({ ctx, input }) => {
