@@ -257,7 +257,7 @@ export async function getValSale(id: number) {
   return sale;
 }
 
-export async function updateValSale(id: number, input: Pick<InsertValSale, "crcId" | "patientName" | "phone" | "patientType" | "saleDate" | "value" | "totalTimeSeconds" | "insurancePlan" | "notes">) {
+export async function updateValSale(id: number, input: Pick<InsertValSale, "crcId" | "patientName" | "phone" | "patientType" | "internalStatus" | "saleDate" | "value" | "totalTimeSeconds" | "insurancePlan" | "notes">) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   if (!input.crcId) throw new Error("Selecione uma CRC cadastrada");

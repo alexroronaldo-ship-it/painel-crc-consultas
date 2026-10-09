@@ -38,8 +38,16 @@ describe("API isolada de Pacientes Ativos Orto Implante", () => {
   it("aceita apenas canais de contato previstos e exige referência", async () => {
     const caller = appRouter.createCaller(context());
     await expect(caller.orthoActive.patients.create({ ...sale, contactChannel: "Facebook" } as never)).rejects.toThrow();
-    await expect(caller.orthoActive.patients.create({ ...sale, reference: "" })).rejects.toThrow();
+    await expect(caller.orthoActive.patients.create({ ...sale, reference: "" } as never)).rejects.toThrow();
     expect(mocks.createActivePatient).not.toHaveBeenCalled();
+  });
+  it("aceita as quatro referências clicáveis e rejeita valores fora da lista", async () => {
+    const caller = appRouter.createCaller(context());
+    for (const reference of ["Dentista", "Paciente", "Marketing", "Não se aplica"] as const) {
+      await caller.orthoActive.patients.create({ ...sale, reference });
+      expect(mocks.createActivePatient).toHaveBeenLastCalledWith(expect.objectContaining({ reference }));
+    }
+    await expect(caller.orthoActive.patients.create({ ...sale, reference: "Outro" } as never)).rejects.toThrow();
   });
   it("dispensa tempo e recusa novo registro para Jéssika", async () => {
     const caller = appRouter.createCaller(context());

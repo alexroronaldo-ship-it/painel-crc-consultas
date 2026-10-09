@@ -1,3 +1,4 @@
+import { ORTHO_REFERENCE_OPTIONS } from "../../shared/orthoReference";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -27,7 +28,7 @@ export const orthoActiveRouter = router({
     create: protectedProcedure.input(z.object({
       crcName: crc, patientName: z.string().trim().min(2).max(160), phone: z.string().trim().min(8).max(40),
       contactChannel: z.enum(["WhatsApp", "Ligação", "Presencial", "Instagram"]),
-      reference: z.string().trim().min(1).max(160),
+      reference: z.enum(ORTHO_REFERENCE_OPTIONS),
       closingDate: date, closedItem: z.string().trim().min(2).max(5000), value: money,
       totalTimeSeconds: z.number().int().min(0).max(86400).default(0),
       internalStatus: z.enum(["closed", "follow_up", "not_closed"]), internalNotes: z.string().trim().max(5000).optional(),

@@ -10,10 +10,10 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
 const logoPath = "/manus-storage/grupo-alva-logo_c2ab66b8.jpg";
 const nav = [
-  { href: "/", label: "Funil de Vendas Orto Implante", icon: ClipboardCheck },
-  { href: "/pacientes-ativos", label: "Pacientes Ativos Orto Implante", icon: HeartPulse },
+  { href: "/", label: "Comissão Novos Pacientes - Ortoimplante", icon: ClipboardCheck },
+  { href: "/pacientes-ativos", label: "Comissão de Revenda Pacientes Ativos - Ortoimplante", icon: HeartPulse },
   { href: "/campanhas", label: "Campanhas", icon: Megaphone },
-  { href: "/val", label: "Odontomab (Ativos & Novo)", icon: BarChart3 },
+  { href: "/val", label: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)", icon: BarChart3 },
 ] as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
