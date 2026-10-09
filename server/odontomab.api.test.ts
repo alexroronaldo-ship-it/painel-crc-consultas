@@ -20,6 +20,16 @@ describe("Odontomab — pacientes ativos e novos", () => {
     await expect(caller.create(input)).resolves.toEqual({ success: true });
     expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", totalTimeSeconds: 0, createdBy: 1 }));
   });
+  it("salva e corrige os três status e rejeita status inválido", async () => {
+    const caller = odontomabRouter.createCaller(ctx());
+    for (const internalStatus of ["closed", "not_closed", "follow_up"] as const) {
+      await caller.create({ ...input, internalStatus });
+      expect(mocks.createValSale).toHaveBeenLastCalledWith(expect.objectContaining({ internalStatus }));
+      await caller.update({ ...input, id: 9, internalStatus });
+      expect(mocks.updateValSale).toHaveBeenLastCalledWith(9, expect.objectContaining({ internalStatus }));
+    }
+    await expect(caller.create({ ...input, internalStatus: "invalid" } as never)).rejects.toThrow();
+  });
   it("permite os cinco convênios e Particular para paciente novo", async () => {
     const caller = odontomabRouter.createCaller(ctx());
     for (const insurancePlan of ODONTOMAB_INSURANCE_PLANS) await caller.create({ ...input, patientType: "new", insurancePlan });

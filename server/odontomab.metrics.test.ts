@@ -33,3 +33,15 @@ describe("Odontomab — métricas por tipo", () => {
     expect(selectOdontomabCrc([], "VAL")).toBeUndefined();
   });
 });
+
+it("conta todos os pacientes, mas só vendas fechadas geram receita e comissão", () => {
+  const result = calculateOdontomabMetrics([
+    { patientType: "active", value: "1000", internalStatus: "closed" },
+    { patientType: "active", value: "2000", internalStatus: "follow_up" },
+    { patientType: "new", value: "3000", internalStatus: "not_closed" },
+    { patientType: "new", value: "500" },
+  ]);
+  expect(result.total).toEqual({ count: 4, revenue: 1500, commission: 3 });
+  expect(result.active.revenue).toBe(1000);
+  expect(result.new.revenue).toBe(500);
+});

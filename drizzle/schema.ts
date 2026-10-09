@@ -117,6 +117,7 @@ export const valSales = mysqlTable("val_sales", {
   patientName: varchar("patientName", { length: 160 }),
   phone: varchar("phone", { length: 40 }),
   patientType: mysqlEnum("patientType", ["active", "new"]),
+  internalStatus: mysqlEnum("internalStatus", ["closed", "not_closed", "follow_up"]).notNull().default("closed"),
   photoKey: varchar("photoKey", { length: 512 }),
   photoUrl: varchar("photoUrl", { length: 768 }),
   saleDate: varchar("saleDate", { length: 10 }).notNull(),
