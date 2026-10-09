@@ -150,6 +150,8 @@ export const orthoActivePatients = mysqlTable("ortho_active_patients", {
   crcName: varchar("crcName", { length: 32 }).notNull(),
   patientName: varchar("patientName", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
+  contactChannel: mysqlEnum("contactChannel", ["WhatsApp", "Ligação", "Presencial", "Instagram"]),
+  reference: varchar("reference", { length: 160 }),
   closingDate: varchar("closingDate", { length: 10 }).notNull(),
   closedItem: text("closedItem").notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
