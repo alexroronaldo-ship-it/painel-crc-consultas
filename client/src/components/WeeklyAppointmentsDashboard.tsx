@@ -12,7 +12,7 @@ const weeks = [1, 2, 3, 4, 5] as const;
 
 type CrcName = "WISLLAYNI" | "JAYZA" | "VAL";
 
-export default function WeeklyAppointmentsDashboard({ month, crcName, displayName }: { month: string; crcName: CrcName; displayName: string }) {
+export default function WeeklyAppointmentsDashboard({ month, crcName, displayName, readOnly = false }: { month: string; crcName: CrcName; displayName: string; readOnly?: boolean }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [appointmentCount, setAppointmentCount] = useState("");
@@ -30,6 +30,7 @@ export default function WeeklyAppointmentsDashboard({ month, crcName, displayNam
   });
 
   const openWeek = (week?: number) => {
+    if (readOnly) return;
     if (!month) return toast.error("Selecione um mês para registrar os agendamentos");
     const targetWeek = week ?? weeks.find(item => !records.some(record => record.week === item)) ?? 5;
     const existing = records.find(record => record.week === targetWeek);
@@ -77,7 +78,7 @@ export default function WeeklyAppointmentsDashboard({ month, crcName, displayNam
           const goal = record?.weeklyGoal ?? 0;
           const reached = Boolean(record) && count >= goal;
           const progress = goal > 0 ? Math.min(100, (count / goal) * 100) : 0;
-          return <button type="button" key={week} onClick={() => openWeek(week)} className="rounded-xl border border-[#dce8ed] bg-[#fbfdfe] p-4 text-left transition-colors hover:border-[#a9cbd9] hover:bg-[#f4fafc]">
+          return <button type="button" key={week} disabled={readOnly} onClick={() => openWeek(week)} className="rounded-xl border border-[#dce8ed] bg-[#fbfdfe] p-4 text-left transition-colors hover:border-[#a9cbd9] hover:bg-[#f4fafc]">
             <div className="flex items-center justify-between"><span className="text-sm font-bold text-[#174f6f]">S{week}</span>{record ? <Pencil className="h-3.5 w-3.5 text-[#7d98a5]" /> : <Plus className="h-3.5 w-3.5 text-[#7d98a5]" />}</div>
             <p className="mt-4 text-2xl font-semibold text-[#174f6f]">{count}</p>
             <p className="text-[11px] text-[#8b989d]">meta: {goal || "—"}</p>
@@ -85,7 +86,7 @@ export default function WeeklyAppointmentsDashboard({ month, crcName, displayNam
             <p className={`mt-2 text-[11px] font-semibold ${reached ? "text-[#3f8750]" : record ? "text-[#a45d28]" : "text-[#98a5ab]"}`}>{reached ? `Meta batida · +${count - goal}` : record ? `Faltam ${goal - count}` : "Aguardando registro"}</p>
           </button>;
         })}</div>}
-        <Button type="button" onClick={() => openWeek()} disabled={!month} variant="outline" className="mt-4 w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]"><Plus className="mr-2 h-4 w-4" />Registrar agendamentos da semana</Button>
+        <Button type="button" onClick={() => openWeek()} disabled={!month || readOnly} variant="outline" className="mt-4 w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]"><Plus className="mr-2 h-4 w-4" />Registrar agendamentos da semana</Button>
       </CardContent>
     </Card>
 

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { createActiveCampaign, createActivePatient, deleteActivePatient, deleteEmptyActiveCampaign, listActiveCampaigns, listActiveGoals, listActivePatients, listActiveWeeks, saveActiveAppointments, saveActiveGoal, saveActiveTasks, updateActiveCampaign, updateActivePatientTime } from "../orthoActiveDb";
 
+import { assertOrtoCrcActive } from "../crcTransferDb";
+
 export const activeCrcNames = ["WISLLAYNI", "JAYZA"] as const;
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida").refine(value => !Number.isNaN(Date.parse(`${value}T12:00:00`)) && new Date(`${value}T12:00:00`).toISOString().slice(0, 10) === value, "Data inexistente");
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Informe um mês válido");
@@ -29,6 +31,7 @@ export const orthoActiveRouter = router({
       internalStatus: z.enum(["closed", "follow_up", "not_closed"]), internalNotes: z.string().trim().max(5000).optional(),
       campaignId: z.number().int().positive().optional(),
     })).mutation(async ({ ctx, input }) => {
+      await assertOrtoCrcActive("ortho_active", input.crcName);
       await createActivePatient({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
       return { success: true } as const;
     }),
@@ -64,6 +67,7 @@ export const orthoActiveRouter = router({
     list: protectedProcedure.input(z.object({ month })).query(({ input }) => listActiveGoals(input.month)),
     save: protectedProcedure.input(z.object({ crcName: crc, month, monthlyGoal: positiveMoney.optional(), weeklySalesGoal: positiveMoney.optional(), timeGoalSeconds: z.number().int().min(1).max(86400).optional() })).mutation(async ({ ctx, input }) => {
       requireManager(ctx.user.role);
+      await assertOrtoCrcActive("ortho_active", input.crcName);
       await saveActiveGoal({ crcName: input.crcName, month: input.month, monthlyGoal: input.monthlyGoal?.replace(",", ".") ?? null, weeklySalesGoal: input.weeklySalesGoal?.replace(",", ".") ?? null, timeGoalSeconds: input.timeGoalSeconds ?? null, updatedBy: ctx.user.id });
       return { success: true } as const;
     }),
@@ -71,10 +75,12 @@ export const orthoActiveRouter = router({
   weekly: router({
     list: protectedProcedure.input(z.object({ month })).query(({ input }) => listActiveWeeks(input.month)),
     saveTasks: protectedProcedure.input(weekBase.extend({ taskCount: limitedCount, taskGoal: z.number().int().min(1).max(100000).optional(), description: z.string().trim().max(5000).optional() })).mutation(async ({ ctx, input }) => {
+      await assertOrtoCrcActive("ortho_active", input.crcName);
       await saveActiveTasks({ ...input, taskGoal: input.taskGoal ?? null, description: input.description ?? null, updatedBy: ctx.user.id });
       return { success: true } as const;
     }),
     saveAppointments: protectedProcedure.input(weekBase.extend({ appointmentCount: limitedCount, appointmentGoal: z.number().int().min(1).max(100000).optional() })).mutation(async ({ ctx, input }) => {
+      await assertOrtoCrcActive("ortho_active", input.crcName);
       await saveActiveAppointments({ ...input, appointmentGoal: input.appointmentGoal ?? null, updatedBy: ctx.user.id });
       return { success: true } as const;
     }),

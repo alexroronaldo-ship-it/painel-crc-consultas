@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   listActiveGoals: vi.fn().mockResolvedValue([]), saveActiveGoal: vi.fn(), listActiveWeeks: vi.fn().mockResolvedValue([]), saveActiveTasks: vi.fn(), saveActiveAppointments: vi.fn(),
 }));
 vi.mock("./orthoActiveDb", () => mocks);
+vi.mock("./crcTransferDb", () => ({ assertOrtoCrcActive: vi.fn().mockResolvedValue(undefined) }));
 import { appRouter } from "./routers";
 
 function context(role: "admin" | "user" = "admin"): TrpcContext {

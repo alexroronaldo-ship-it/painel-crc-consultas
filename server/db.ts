@@ -1,6 +1,7 @@
+import { withActiveCrcWrite } from "./crcWriteGuard";
 import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { campaigns, closures, crcProfiles, crcWeeklyActivities, crcWeeklyAppointments, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertCrcWeeklyAppointment, InsertUser, InsertValSale, users, valSales } from "../drizzle/schema";
+import { campaigns, closures, crcProfiles, crcWeeklyActivities, crcWeeklyAppointments, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertCrcWeeklyAppointment, InsertUser, InsertValSale, users, valSales, odontomabCrcs } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -55,7 +56,7 @@ export async function listClosures(month?: string) {
   const db = await getDb();
   if (!db) return [];
   if (!month) {
-    return db.select().from(closures).orderBy(desc(closures.closingDate), desc(closures.createdAt)).limit(500);
+    return db.select().from(closures).orderBy(desc(closures.closingDate), desc(closures.createdAt));
   }
 
   const [year, monthNumber] = month.split("-").map(Number);
@@ -68,13 +69,13 @@ export async function listClosures(month?: string) {
     .from(closures)
     .where(and(gte(closures.closingDate, `${month}-01`), lt(closures.closingDate, `${nextMonth}-01`)))
     .orderBy(desc(closures.closingDate), desc(closures.createdAt))
-    .limit(500);
+    ;
 }
 
 export async function createClosure(input: InsertClosure) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
+  return withActiveCrcWrite("funnel", input.crcName, async db => {
   await db.insert(closures).values(input);
+  });
 }
 
 export async function deleteClosure(id: number) {
@@ -100,8 +101,10 @@ export async function listCrcWeeklyActivities(month: string) {
 }
 
 export async function saveCrcWeeklyActivity(input: InsertCrcWeeklyActivity) {
+  if (input.crcName === "VAL") {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+
   await db.insert(crcWeeklyActivities).values(input).onDuplicateKeyUpdate({
     set: {
       taskCount: input.taskCount,
@@ -109,6 +112,18 @@ export async function saveCrcWeeklyActivity(input: InsertCrcWeeklyActivity) {
       createdBy: input.createdBy,
       updatedAt: new Date(),
     },
+  });
+    return;
+  }
+  return withActiveCrcWrite("funnel", input.crcName, async db => {
+  await db.insert(crcWeeklyActivities).values(input).onDuplicateKeyUpdate({
+    set: {
+      taskCount: input.taskCount,
+      description: input.description,
+      createdBy: input.createdBy,
+      updatedAt: new Date(),
+    },
+  });
   });
 }
 
@@ -123,8 +138,10 @@ export async function listCrcWeeklyAppointments(month: string) {
 }
 
 export async function saveCrcWeeklyAppointment(input: InsertCrcWeeklyAppointment) {
+  if (input.crcName === "VAL") {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+
   await db.insert(crcWeeklyAppointments).values(input).onDuplicateKeyUpdate({
     set: {
       appointmentCount: input.appointmentCount,
@@ -132,6 +149,18 @@ export async function saveCrcWeeklyAppointment(input: InsertCrcWeeklyAppointment
       createdBy: input.createdBy,
       updatedAt: new Date(),
     },
+  });
+    return;
+  }
+  return withActiveCrcWrite("funnel", input.crcName, async db => {
+  await db.insert(crcWeeklyAppointments).values(input).onDuplicateKeyUpdate({
+    set: {
+      appointmentCount: input.appointmentCount,
+      weeklyGoal: input.weeklyGoal,
+      createdBy: input.createdBy,
+      updatedAt: new Date(),
+    },
+  });
   });
 }
 
@@ -208,9 +237,10 @@ export async function listValSales(month?: string) {
 }
 
 export async function createValSale(input: InsertValSale) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
+  if (!input.crcId) throw new Error("Selecione uma CRC cadastrada");
+  return withActiveCrcWrite("odontomab", input.crcId, async db => {
   await db.insert(valSales).values(input);
+  });
 }
 
 export async function deleteValSale(id: number) {
@@ -230,8 +260,15 @@ export async function getValSale(id: number) {
 export async function updateValSale(id: number, input: Pick<InsertValSale, "crcId" | "patientName" | "phone" | "patientType" | "saleDate" | "value" | "totalTimeSeconds" | "insurancePlan" | "notes">) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
-  await getValSale(id);
-  await db.update(valSales).set(input).where(eq(valSales.id, id));
+  if (!input.crcId) throw new Error("Selecione uma CRC cadastrada");
+  await db.transaction(async tx => {
+    const [crc] = await tx.select().from(odontomabCrcs).where(eq(odontomabCrcs.id, input.crcId!)).for("update");
+    const [existing] = await tx.select().from(valSales).where(eq(valSales.id, id)).for("update");
+    if (!existing) throw new Error("Paciente não encontrado");
+    if (!crc) throw new Error("CRC não cadastrada");
+    if (!crc.isActive && existing.crcId !== input.crcId) throw new Error("CRC retirada. Selecione outra CRC ativa para transferir este paciente.");
+    await tx.update(valSales).set(input).where(eq(valSales.id, id));
+  });
 }
 
 export async function saveValPatientPhoto(id: number, photoKey: string, photoUrl: string) {

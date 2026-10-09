@@ -8,6 +8,8 @@ import { createCampaign, createClosure, deleteClosure, deleteEmptyCampaign, list
 import { storagePut } from "./storage";
 import { orthoActiveRouter } from "./routers/orthoActive";
 import { odontomabRouter } from "./routers/odontomab";
+import { crcTransfersRouter } from "./routers/crcTransfers";
+import { assertOrtoCrcActive } from "./crcTransferDb";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
@@ -28,6 +30,7 @@ const assertManager = (role: string) => {
 export const appRouter = router({
   system: systemRouter,
   orthoActive: orthoActiveRouter,
+  crcTransfers: crcTransfersRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -88,6 +91,7 @@ export const appRouter = router({
       campaignId: z.number().int().positive().optional(),
       leadOrigin: z.string().trim().min(2, "Informe a origem do lead").max(160).optional(),
     })).mutation(async ({ ctx, input }) => {
+      await assertOrtoCrcActive("funnel", input.crcName);
       await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
       return { success: true } as const;
     }),
@@ -103,6 +107,7 @@ export const appRouter = router({
       taskCount: z.number().int().min(0).max(100000),
       description: z.string().trim().min(2, "Descreva as tarefas realizadas").max(5000),
     })).mutation(async ({ ctx, input }) => {
+      if (input.crcName !== "VAL") await assertOrtoCrcActive("funnel", input.crcName);
       await saveCrcWeeklyActivity({ ...input, createdBy: ctx.user.id });
       return { success: true } as const;
     }),
@@ -118,6 +123,7 @@ export const appRouter = router({
       appointmentCount: z.number().int().min(0).max(100000),
       weeklyGoal: z.number().int().min(1).max(100000),
     })).mutation(async ({ ctx, input }) => {
+      if (input.crcName !== "VAL") await assertOrtoCrcActive("funnel", input.crcName);
       await saveCrcWeeklyAppointment({ ...input, createdBy: ctx.user.id });
       return { success: true } as const;
     }),

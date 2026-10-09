@@ -10,7 +10,7 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 type CrcName = "WISLLAYNI" | "JAYZA" | "VAL";
 const validTypes = ["image/jpeg", "image/png", "image/webp"];
 
-export default function CrcPortraitCard({ crcName, displayName, commission, revenue, month, photoUrl, fillHeight = true }: {
+export default function CrcPortraitCard({ crcName, displayName, commission, revenue, month, photoUrl, fillHeight = true, readOnly = false }: {
   crcName: CrcName;
   displayName: string;
   commission?: number;
@@ -18,6 +18,7 @@ export default function CrcPortraitCard({ crcName, displayName, commission, reve
   month: string;
   photoUrl?: string;
   fillHeight?: boolean;
+  readOnly?: boolean;
 }) {
   const inputId = useId();
   const utils = trpc.useUtils();
@@ -61,7 +62,7 @@ export default function CrcPortraitCard({ crcName, displayName, commission, reve
       <div className="relative flex min-h-[230px] flex-1 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#b7d2df] bg-[#f4f9fb] sm:min-h-[270px]">
         {photoUrl ? <img key={photoUrl} src={photoUrl} alt={`Foto profissional de ${displayName}`} className="absolute inset-0 h-full w-full object-cover object-top" /> : <div className="px-5 text-center text-[#7390a0]"><UserRound className="mx-auto mb-3 h-12 w-12 text-[#9cbac9]" aria-hidden="true" /><p className="text-sm font-medium">Foto de {displayName}</p><p className="mt-1 text-xs">Espaço reservado para a foto profissional</p></div>}
       </div>
-      {user?.role === "admin" && <div className="mt-3"><input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhotoSelected} disabled={upload.isPending} className="sr-only" aria-label={`Selecionar foto profissional de ${displayName}`} /><Button type="button" variant="outline" className="w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]" disabled={upload.isPending} onClick={() => document.getElementById(inputId)?.click()}>{upload.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}{photoUrl ? "Trocar foto" : "Adicionar foto"}</Button><p className="mt-1.5 text-center text-[11px] text-[#8b989d]">JPG, PNG ou WebP · até 2 MB</p></div>}
+      {user?.role === "admin" && !readOnly && <div className="mt-3"><input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhotoSelected} disabled={upload.isPending} className="sr-only" aria-label={`Selecionar foto profissional de ${displayName}`} /><Button type="button" variant="outline" className="w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]" disabled={upload.isPending} onClick={() => document.getElementById(inputId)?.click()}>{upload.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}{photoUrl ? "Trocar foto" : "Adicionar foto"}</Button><p className="mt-1.5 text-center text-[11px] text-[#8b989d]">JPG, PNG ou WebP · até 2 MB</p></div>}
       <div className="mt-5 rounded-xl bg-[#e8f4f8] p-4" aria-live="polite"><p className="text-xs font-semibold uppercase tracking-wide text-[#486a7b]">{commission === undefined ? "Vendas" : "Comissão"} {month ? "do mês" : "de todo o período"}</p><p className="mt-1 break-words text-3xl font-bold tracking-tight text-[#176187]">{currency.format(commission ?? revenue ?? 0)}</p><p className="mt-1 text-xs text-[#6e7f88]">{commission === undefined ? `Vendas próprias de ${displayName}, separadas do Funil de Vendas Orto Implante.` : `Calculada sobre as vendas de ${displayName}${month ? " no período selecionado" : ""}.`}</p></div>
     </CardContent>
   </Card>;

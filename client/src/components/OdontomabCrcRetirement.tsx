@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import CrcTransferDialog from "@/components/CrcTransferDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ export default function OdontomabCrcRetirement({ crcs, selected, onSelect }: { c
   }
   return <>
     <div className="flex flex-wrap gap-2">
+      <CrcTransferDialog scope="odontomab" crcs={crcs} initialSourceId={selected?.id} onTransferred={onSelect} />
       {isAdmin && selected?.isActive && <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setTarget(selected); setPassword(""); }} className="border-[#e4c8c8] bg-white text-[#a14f4f] hover:bg-red-50"><Archive className="mr-1.5 h-4 w-4" />Retirar CRC</Button>}
       {isAdmin && selected && !selected.isActive && <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => restore.mutate({ id: selected.id })} className="bg-white text-[#2e718f]"><RotateCcw className="mr-1.5 h-4 w-4" />Reativar CRC</Button>}
       {removed.length > 0 && <Button type="button" size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="bg-white text-[#617782]"><History className="mr-1.5 h-4 w-4" />CRCs retiradas ({removed.length})</Button>}

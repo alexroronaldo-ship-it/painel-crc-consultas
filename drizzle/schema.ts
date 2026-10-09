@@ -1,4 +1,4 @@
-import { boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -190,3 +190,28 @@ export const orthoActiveWeekly = mysqlTable("ortho_active_weekly", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [uniqueIndex("ortho_active_weekly_crc_month_week_unique").on(table.crcName, table.month, table.week)]);
 export type OrthoActiveWeek = typeof orthoActiveWeekly.$inferSelect;
+
+/** Retirada independente em cada página Orto Implante; nunca altera o retrato. */
+export const ortoCrcStates = mysqlTable("orto_crc_states", {
+  id: int("id").autoincrement().primaryKey(),
+  scope: mysqlEnum("scope", ["funnel", "ortho_active"]).notNull(),
+  crcId: varchar("crcId", { length: 32 }).notNull(),
+  isActive: boolean("isActive").notNull().default(true),
+  removedBy: int("removedBy"),
+  removedAtMs: bigint("removedAtMs", { mode: "number" }),
+}, table => [uniqueIndex("orto_crc_states_scope_crc_unique").on(table.scope, table.crcId)]);
+
+/** Histórico de atribuição: origem, destino e IDs preservados de cada transferência. */
+export const crcTransfers = mysqlTable("crc_transfers", {
+  id: int("id").autoincrement().primaryKey(),
+  scope: mysqlEnum("scope", ["funnel", "ortho_active", "odontomab"]).notNull(),
+  sourceId: varchar("sourceId", { length: 32 }).notNull(),
+  targetId: varchar("targetId", { length: 32 }).notNull(),
+  sourceName: varchar("sourceName", { length: 160 }).notNull(),
+  targetName: varchar("targetName", { length: 160 }).notNull(),
+  recordCount: int("recordCount").notNull(),
+  totalValue: decimal("totalValue", { precision: 16, scale: 2 }).notNull(),
+  recordIds: text("recordIds").notNull(),
+  performedBy: int("performedBy").notNull(),
+  performedAtMs: bigint("performedAtMs", { mode: "number" }).notNull(),
+});

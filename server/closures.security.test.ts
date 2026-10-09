@@ -48,6 +48,7 @@ vi.mock("./db", () => ({
 vi.mock("./storage", () => ({ storagePut }));
 vi.mock("./odontomabCrcDb", () => ({ requireOdontomabCrc: vi.fn().mockResolvedValue({ id: "VAL", name: "Vivi" }) }));
 
+vi.mock("./crcTransferDb", () => ({ assertOrtoCrcActive: vi.fn().mockResolvedValue(undefined) }));
 import { appRouter } from "./routers";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;

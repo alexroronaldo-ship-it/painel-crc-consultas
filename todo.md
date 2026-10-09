@@ -1,11 +1,12 @@
-# Atualização — retirada de CRC, Particular e fotos
+# Transferir registros e retirar CRC
 
-- [x] Particular incluído na Odontomab: cadastro, correção, tabela, busca e cartão de acompanhamento. Mantida comissão fixa de 0,2% e não reclassificados registros antigos sem convênio.
-- [x] Retirar CRC com diálogo nomeado, confirmação, senha provisória validada no servidor e permissão de gerência.
-- [x] Retirada reversível com isActive e auditoria; preservados ID, foto, vendas, pacientes, comissão e semanas. CRCs retiradas permite consultar o histórico ou reativar o mesmo perfil.
-- [x] CRCs retiradas fora das abas ativas e de novos lançamentos; correção de paciente antigo mantém a atribuição original. Estado vazio previsto para retirada da última CRC.
-- [x] Pacientes Ativos Orto Implante exibe retrato profissional e upload de Wisllayny/JAYZA com comissão exclusiva dos fechamentos desse módulo. Foto compartilhada com o Funil de Vendas, como explicado na interface; métricas continuam independentes.
-- [x] Migração 0017 aditiva aplicada; todos os perfis existentes continuam ativos por padrão. 96 testes, tipagem, build e integridade do diff aprovados. Habilidade validada.
-- [x] Revisão das capturas autenticadas de Odontomab e Pacientes Ativos, desktop e celular: Retirar CRC visível, Particular nos indicadores/formulário, miniaturas nas abas e foto com comissão na coluna lateral.
+- [x] Botão disponível em Odontomab, Funil de Vendas Orto Implante e Pacientes Ativos Orto Implante.
+- [x] Origem/destino explícitos, resumo de todos os meses com quantidade e valor, confirmação e senha provisória 0000; API restrita à gerência.
+- [x] Transferência atômica somente dentro da página escolhida, preservando IDs, pacientes, valores, datas, campanhas, convênios, fotos de pacientes e autoria anterior em auditoria.
+- [x] Comissão e progresso recalculados para a destinatária; faturamento da equipe preservado. Fotos profissionais, metas pessoais, tarefas e agenda não transferidas.
+- [x] Retirada reversível da origem, histórico consultável e reativação que não desfaz transferências; estados separados entre as duas páginas Orto Implante.
+- [x] Novos lançamentos e transferência serializados por bloqueios de perfil. Destino inexistente/retirado, resumo desatualizado e rollback cobertos por testes.
+- [x] Migração 0018 aplicada sem modificar registros existentes. 115 testes, tipagem, build e diff aprovados.
+- [x] Capturas autenticadas desktop/mobile e testes de diálogo/sucesso com respostas tRPC simuladas. Nenhuma transferência ou retirada real executada.
 
-Nenhuma CRC real foi retirada ou reativada e nenhum paciente foi alterado como teste. Retirada, senha, acesso, reativação, preservação e caso sem CRC ativa foram testados com mocks, não por exclusões na base real. O próximo passo é salvar o checkpoint final da versão validada.
+Pronto para checkpoint final. As CRCs de origem permanecem no histórico, em vez de exclusão física, para preservar rastreabilidade dos pacientes e dados semanais.
