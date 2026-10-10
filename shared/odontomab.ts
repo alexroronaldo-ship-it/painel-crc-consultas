@@ -31,3 +31,13 @@ export function calculateOdontomabMetrics(rows: Array<{ patientType?: string | n
     unclassified: summarize(rows.filter(row => row.patientType !== "active" && row.patientType !== "new")),
   };
 }
+
+export function calculateOdontomabInsuranceMetrics(rows: Array<{ insurancePlan?: string | null; value: string | number; internalStatus?: OdontomabStatus }>) {
+  const plans = [...ODONTOMAB_INSURANCE_PLANS] as string[];
+  if (rows.some(row => !row.insurancePlan)) plans.push("Não informado");
+  return plans.map(plan => {
+    const items = rows.filter(row => displayOdontomabInsurance(row.insurancePlan) === plan || (!row.insurancePlan && plan === "Não informado"));
+    const metrics = calculateOdontomabMetrics(items);
+    return { plan, count: metrics.total.count, revenue: metrics.total.revenue };
+  });
+}

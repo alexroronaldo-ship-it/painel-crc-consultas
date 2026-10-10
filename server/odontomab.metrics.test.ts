@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateOdontomabMetrics, displayOdontomabInsurance, ODONTOMAB_COMMISSION_RATE, selectOdontomabCrc } from "../shared/odontomab";
+import { calculateOdontomabInsuranceMetrics, calculateOdontomabMetrics, displayOdontomabInsurance, ODONTOMAB_COMMISSION_RATE, selectOdontomabCrc } from "../shared/odontomab";
 
 describe("Odontomab — métricas por tipo", () => {
   it("separa Ativo/Novo e preserva vendas antigas no total sem classificá-las", () => {
@@ -44,4 +44,16 @@ it("conta todos os pacientes, mas só vendas fechadas geram receita e comissão"
   expect(result.total).toEqual({ count: 4, revenue: 1500, commission: 3 });
   expect(result.active.revenue).toBe(1000);
   expect(result.new.revenue).toBe(500);
+});
+
+it("agrupa a receita fechada por convênio e preserva convênio sem informação", () => {
+  const result = calculateOdontomabInsuranceMetrics([
+    { insurancePlan: "Rede Unna", value: "8100.00", internalStatus: "closed" },
+    { insurancePlan: "Rede Unna (Odontoprev)", value: "2000.00", internalStatus: "follow_up" },
+    { insurancePlan: "Unimed", value: "3000.00", internalStatus: "closed" },
+    { insurancePlan: null, value: "500.00", internalStatus: "closed" },
+  ]);
+  expect(result.find(item => item.plan === "Rede Unna (Odontoprev)")).toEqual({ plan: "Rede Unna (Odontoprev)", count: 2, revenue: 8100 });
+  expect(result.find(item => item.plan === "Unimed")).toEqual({ plan: "Unimed", count: 1, revenue: 3000 });
+  expect(result.find(item => item.plan === "Não informado")).toEqual({ plan: "Não informado", count: 1, revenue: 500 });
 });
