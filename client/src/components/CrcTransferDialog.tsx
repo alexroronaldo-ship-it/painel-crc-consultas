@@ -18,9 +18,9 @@ import { toast } from "sonner";
 type Scope = "odontomab" | "funnel" | "ortho_active";
 type Crc = { id: string; name: string; isActive: boolean };
 const labels = {
-  odontomab: "Odontomab (Ativos & Novo)",
-  funnel: "Funil de Vendas Orto Implante",
-  ortho_active: "Pacientes Ativos Orto Implante",
+  odontomab: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)",
+  funnel: "Comissão Novos Pacientes - Ortoimplante",
+  ortho_active: "Comissão de Revenda Pacientes Ativos - Ortoimplante",
 };
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",

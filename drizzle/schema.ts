@@ -122,6 +122,7 @@ export const valSales = mysqlTable("val_sales", {
   saleDate: varchar("saleDate", { length: 10 }).notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
+  status: mysqlEnum("status", ["closed", "not_closed", "follow_up"]),
   insurancePlan: varchar("insurancePlan", { length: 40 }),
   notes: text("notes"),
   createdBy: int("createdBy").notNull(),
