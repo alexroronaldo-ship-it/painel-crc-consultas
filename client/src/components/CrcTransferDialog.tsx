@@ -19,8 +19,8 @@ type Scope = "odontomab" | "funnel" | "ortho_active";
 type Crc = { id: string; name: string; isActive: boolean };
 const labels = {
   odontomab: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)",
-  funnel: "Comissão Novos Pacientes - Ortoimplante",
-  ortho_active: "Comissão de Revenda Pacientes Ativos - Ortoimplante",
+  funnel: "Comissão Marketing – Ortoimplante",
+  ortho_active: "Comissão Clínica – Ortoimplant",
 };
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",

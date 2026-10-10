@@ -10,8 +10,8 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
 const logoPath = "/manus-storage/grupo-alva-logo_c2ab66b8.jpg";
 const nav = [
-  { href: "/", label: "Comissão Novos Pacientes - Ortoimplante", icon: ClipboardCheck },
-  { href: "/pacientes-ativos", label: "Comissão de Revenda Pacientes Ativos - Ortoimplante", icon: HeartPulse },
+  { href: "/", label: "Comissão Marketing – Ortoimplante", icon: ClipboardCheck },
+  { href: "/pacientes-ativos", label: "Comissão Clínica – Ortoimplant", icon: HeartPulse },
   { href: "/campanhas", label: "Campanhas", icon: Megaphone },
   { href: "/val", label: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)", icon: BarChart3 },
 ] as const;
