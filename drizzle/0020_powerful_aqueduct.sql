@@ -1,1 +1,0 @@
-ALTER TABLE `val_sales` ADD `status` enum('closed','not_closed','follow_up');

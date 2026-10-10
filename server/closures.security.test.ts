@@ -328,8 +328,8 @@ describe("closures protected deletion", () => {
     await expect(caller.valSales.list({ month: "2026-09" })).resolves.toEqual([]);
     expect(listValSales).toHaveBeenCalledWith("2026-09");
 
-    await expect(caller.valSales.create({ crcId: "VAL", patientName: "Paciente Teste", patientType: "active", saleDate: "2026-09-19", value: "2500,50", totalTimeSeconds: 90, status: "closed", insurancePlan: "Rede Unna (Odontoprev)", notes: "Venda própria" })).resolves.toEqual({ success: true });
-    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", totalTimeSeconds: 90, status: "closed", insurancePlan: "Rede Unna (Odontoprev)", notes: "Venda própria" }));
+    await expect(caller.valSales.create({ crcId: "VAL", patientName: "Paciente Teste", patientType: "active", saleDate: "2026-09-19", value: "2500,50", totalTimeSeconds: 90, internalStatus: "closed", insurancePlan: "Rede Unna (Odontoprev)", notes: "Venda própria" })).resolves.toEqual({ success: true });
+    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", totalTimeSeconds: 90, internalStatus: "closed", insurancePlan: "Rede Unna (Odontoprev)", notes: "Venda própria" }));
   });
 
   it("rejects an insurance plan outside the Odontomab list", async () => {

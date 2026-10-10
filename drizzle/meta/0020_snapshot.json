@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "bb0d3b26-aae3-4e2a-856c-52359fa011ad",
+  "id": "ebca8fd1-ee86-4f13-a4d9-d0f2113dac9c",
   "prevId": "9665cd27-57ba-4f65-888d-13c203836114",
   "tables": {
     "campaigns": {
@@ -844,7 +844,7 @@
         },
         "contactChannel": {
           "name": "contactChannel",
-          "type": "enum('WhatsApp','Ligação','Presencial','Instagram')",
+          "type": "enum('WhatsApp','Liga\u00e7\u00e3o','Presencial','Instagram')",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1280,13 +1280,6 @@
           "autoincrement": false,
           "default": 0
         },
-        "status": {
-          "name": "status",
-          "type": "enum('closed','not_closed','follow_up')",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "insurancePlan": {
           "name": "insurancePlan",
           "type": "varchar(40)",
@@ -1315,6 +1308,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "(now())"
+        },
+        "internalStatus": {
+          "name": "internalStatus",
+          "type": "enum('closed','not_closed','follow_up')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'closed'"
         }
       },
       "indexes": {},

@@ -10,7 +10,7 @@ import { odontomabRouter } from "./routers/odontomab";
 function ctx(role: "admin" | "user" = "admin"): TrpcContext {
   return { user: { id: 1, openId: "test", name: "Gerência", email: null, loginMethod: "manus", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
-const input = { crcId: "VAL", patientName: "Paciente exemplo", patientType: "active", saleDate: "2026-10-08", value: "2500,50", status: "closed", insurancePlan: "Rede Unna (Odontoprev)" } as const;
+const input = { crcId: "VAL", patientName: "Paciente exemplo", patientType: "active", saleDate: "2026-10-08", value: "2500,50", insurancePlan: "Rede Unna (Odontoprev)" } as const;
 const png = Buffer.from("89504e470d0a1a0a00000000", "hex").toString("base64");
 
 describe("Odontomab — pacientes ativos e novos", () => {
@@ -18,7 +18,17 @@ describe("Odontomab — pacientes ativos e novos", () => {
   it("registra nome, tipo e convênio e dispensa o tempo de atendimento", async () => {
     const caller = odontomabRouter.createCaller(ctx());
     await expect(caller.create(input)).resolves.toEqual({ success: true });
-    expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", status: "closed", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", totalTimeSeconds: 0, createdBy: 1 }));
+    expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", totalTimeSeconds: 0, createdBy: 1 }));
+  });
+  it("salva e corrige os três status e rejeita status inválido", async () => {
+    const caller = odontomabRouter.createCaller(ctx());
+    for (const internalStatus of ["closed", "not_closed", "follow_up"] as const) {
+      await caller.create({ ...input, internalStatus });
+      expect(mocks.createValSale).toHaveBeenLastCalledWith(expect.objectContaining({ internalStatus }));
+      await caller.update({ ...input, id: 9, internalStatus });
+      expect(mocks.updateValSale).toHaveBeenLastCalledWith(9, expect.objectContaining({ internalStatus }));
+    }
+    await expect(caller.create({ ...input, internalStatus: "invalid" } as never)).rejects.toThrow();
   });
   it("permite os cinco convênios e Particular para paciente novo", async () => {
     const caller = odontomabRouter.createCaller(ctx());
@@ -26,12 +36,11 @@ describe("Odontomab — pacientes ativos e novos", () => {
     expect(mocks.createValSale).toHaveBeenCalledTimes(6);
     expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientType: "new", insurancePlan: "Hapvida" }));
   });
-  it("rejeita nome vazio, tipo ou status ausente e convênio fora da lista", async () => {
+  it("rejeita nome vazio, tipo ausente e convênio fora da lista", async () => {
     const caller = odontomabRouter.createCaller(ctx());
     await expect(caller.create({ ...input, patientName: " " })).rejects.toThrow();
     await expect(caller.create({ ...input, patientType: undefined } as unknown as Parameters<typeof caller.create>[0])).rejects.toThrow();
     await expect(caller.create({ ...input, insurancePlan: "Outro" } as unknown as Parameters<typeof caller.create>[0])).rejects.toThrow();
-    await expect(caller.create({ ...input, status: undefined } as unknown as Parameters<typeof caller.create>[0])).rejects.toThrow();
     expect(mocks.createValSale).not.toHaveBeenCalled();
   });
   it("exige CRC cadastrada no novo paciente", async () => {
