@@ -1,11 +1,12 @@
 import { listCrcWeeklyActivities, listCrcWeeklyAppointments, listClosures, listValSales } from "./db";
 import { listOdontomabCrcs } from "./odontomabCrcDb";
 import { listActiveGoals, listActivePatients, listActiveWeeks } from "./orthoActiveDb";
+import { listManagerAudit } from "./managerAuditDb";
 
 const marketingCrcs = ["WISLLAYNI", "JAYZA"] as const;
 
 export async function getManagerDashboard(month: string) {
-  const [closures, sharedTasks, sharedAppointments, activePatients, activeGoals, activeWeeks, odontomabSales, odontomabCrcs] = await Promise.all([
+  const [closures, sharedTasks, sharedAppointments, activePatients, activeGoals, activeWeeks, odontomabSales, odontomabCrcs, audit] = await Promise.all([
     listClosures(month),
     listCrcWeeklyActivities(month),
     listCrcWeeklyAppointments(month),
@@ -14,6 +15,7 @@ export async function getManagerDashboard(month: string) {
     listActiveWeeks(month),
     listValSales(month),
     listOdontomabCrcs(),
+    listManagerAudit(month),
   ]);
   const odontomabIds = new Set(odontomabCrcs.map(crc => crc.id));
   return {
@@ -34,5 +36,6 @@ export async function getManagerDashboard(month: string) {
       tasks: sharedTasks.filter(row => odontomabIds.has(row.crcName)).map(row => ({ crcId: row.crcName, week: row.week, taskCount: row.taskCount, description: row.description })),
       appointments: sharedAppointments.filter(row => odontomabIds.has(row.crcName)).map(row => ({ crcId: row.crcName, week: row.week, appointmentCount: row.appointmentCount, weeklyGoal: row.weeklyGoal })),
     },
+    audit,
   };
 }

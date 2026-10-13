@@ -2,6 +2,7 @@ import { ORTHO_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "../../shared/orthoRef
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { recordManagerAudit } from "../managerAuditDb";
 import { createActiveCampaign, createActivePatient, deleteActivePatient, deleteEmptyActiveCampaign, listActiveCampaigns, listActiveGoals, listActivePatients, listActiveWeeks, saveActiveAppointments, saveActiveGoal, saveActiveTasks, updateActiveCampaign, updateActivePatientTime } from "../orthoActiveDb";
 
 import { assertOrtoCrcActive } from "../crcTransferDb";
@@ -21,6 +22,7 @@ const campaignInput = z.object({
   startDate: date, endDate: date.optional(), weeklyGoal: positiveMoney.optional(),
 }).refine(input => !input.endDate || input.endDate >= input.startDate, { message: "Fim anterior ao início", path: ["endDate"] });
 const weekBase = z.object({ crcName: crc, month, week: z.number().int().min(1).max(5) });
+const actorName = (user: { name: string | null; email: string | null; openId: string }) => user.name || user.email || user.openId;
 
 export const orthoActiveRouter = router({
   patients: router({
@@ -34,16 +36,19 @@ export const orthoActiveRouter = router({
       internalStatus: z.literal("closed", { error: "Somente pacientes fechados podem ser registrados" }), internalNotes: z.string().trim().min(2, "Informe uma observação interna").max(5000),
     })).mutation(async ({ ctx, input }) => {
       await assertOrtoCrcActive("ortho_active", input.crcName);
-      await createActivePatient({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      const id = await createActivePatient({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      await recordManagerAudit({ module: "clinic", action: "created", entityId: id, patientName: input.patientName, crcName: input.crcName, summary: `Paciente clínico inscrito · ${input.closedItem}`, performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
       return { success: true } as const;
     }),
-    deleteOne: protectedProcedure.input(passwordInput).mutation(async ({ input }) => {
+    deleteOne: protectedProcedure.input(passwordInput).mutation(async ({ ctx, input }) => {
       checkPassword(input.password);
-      await deleteActivePatient(input.id);
+      const deleted = await deleteActivePatient(input.id);
+      await recordManagerAudit({ module: "clinic", action: "deleted", entityId: deleted.id, patientName: deleted.patientName, crcName: deleted.crcName, summary: "Paciente clínico excluído", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
       return { success: true } as const;
     }),
-    updateTime: protectedProcedure.input(z.object({ id: z.number().int().positive(), totalTimeSeconds: z.number().int().min(0).max(86400) })).mutation(async ({ input }) => {
-      await updateActivePatientTime(input.id, input.totalTimeSeconds);
+    updateTime: protectedProcedure.input(z.object({ id: z.number().int().positive(), totalTimeSeconds: z.number().int().min(0).max(86400) })).mutation(async ({ ctx, input }) => {
+      const updated = await updateActivePatientTime(input.id, input.totalTimeSeconds);
+      await recordManagerAudit({ module: "clinic", action: "updated", entityId: updated.id, patientName: updated.patientName, crcName: updated.crcName, summary: "Registro clínico corrigido", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
       return { success: true } as const;
     }),
   }),

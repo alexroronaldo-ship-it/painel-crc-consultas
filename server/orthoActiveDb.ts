@@ -22,16 +22,23 @@ export async function listActivePatients(month?: string) {
 }
 export async function createActivePatient(input: InsertOrthoActivePatient) {
   return withActiveCrcWrite("ortho_active", input.crcName, async db => {
-  await db.insert(orthoActivePatients).values({ ...input, campaignId: null });
+  const result = await db.insert(orthoActivePatients).values({ ...input, campaignId: null });
+  return Number(result[0].insertId);
   });
 }
 export async function deleteActivePatient(id: number) {
   const db = await requiredDb();
+  const [current] = await db.select({ id: orthoActivePatients.id, patientName: orthoActivePatients.patientName, crcName: orthoActivePatients.crcName }).from(orthoActivePatients).where(eq(orthoActivePatients.id, id)).limit(1);
+  if (!current) throw new Error("Paciente não encontrado");
   await db.delete(orthoActivePatients).where(eq(orthoActivePatients.id, id));
+  return current;
 }
 export async function updateActivePatientTime(id: number, totalTimeSeconds: number) {
   const db = await requiredDb();
+  const [current] = await db.select({ id: orthoActivePatients.id, patientName: orthoActivePatients.patientName, crcName: orthoActivePatients.crcName }).from(orthoActivePatients).where(eq(orthoActivePatients.id, id)).limit(1);
+  if (!current) throw new Error("Paciente não encontrado");
   await db.update(orthoActivePatients).set({ totalTimeSeconds }).where(eq(orthoActivePatients.id, id));
+  return current;
 }
 
 export async function listActiveCampaigns() {

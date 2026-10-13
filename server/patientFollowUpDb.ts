@@ -31,7 +31,8 @@ export async function createPatientFollowUp(input: InsertPatientFollowUp) {
     const campaign = await db.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.id, input.campaignId)).limit(1);
     if (!campaign.length) throw new Error("Campanha não encontrada");
   }
-  await db.insert(patientFollowUps).values({ ...input, campaignId: input.hasCampaign ? input.campaignId : null });
+  const result = await db.insert(patientFollowUps).values({ ...input, campaignId: input.hasCampaign ? input.campaignId : null });
+  return Number(result[0].insertId);
 }
 
 export async function updatePatientFollowUp(id: number, input: Pick<InsertPatientFollowUp, "crcName" | "hasCampaign" | "campaignId" | "patientName" | "phone" | "contactChannel" | "reference" | "closingDate" | "closedItem" | "value" | "notes">, correctedBy: number) {
@@ -49,10 +50,11 @@ export async function updatePatientFollowUp(id: number, input: Pick<InsertPatien
 
 export async function deletePatientFollowUp(id: number) {
   const db = await database();
-  const [current] = await db.select({ id: patientFollowUps.id, saleEffective: patientFollowUps.saleEffective }).from(patientFollowUps).where(eq(patientFollowUps.id, id)).limit(1);
+  const [current] = await db.select({ id: patientFollowUps.id, saleEffective: patientFollowUps.saleEffective, patientName: patientFollowUps.patientName, crcName: patientFollowUps.crcName }).from(patientFollowUps).where(eq(patientFollowUps.id, id)).limit(1);
   if (!current) throw new Error("Lead não encontrado");
   if (current.saleEffective) throw new Error("Venda efetivada não pode ser removida do acompanhamento");
   await db.delete(patientFollowUps).where(eq(patientFollowUps.id, id));
+  return current;
 }
 
 export async function effectivePatientFollowUp(input: { id: number; commissionDestination: "clinic" | "marketing" | "odontomab"; commissionCrcId: string; closingDate: string; closedItem: string; value: string; odontomabPatientType?: "active" | "new"; insurancePlan?: string; effectiveBy: number }) {
@@ -86,4 +88,5 @@ export async function effectivePatientFollowUp(input: { id: number; commissionDe
     }
     await tx.update(patientFollowUps).set({ closingDate: input.closingDate, closedItem: input.closedItem, value: input.value, commissionDestination: input.commissionDestination, commissionCrcId: input.commissionCrcId, destinationRecordId, saleEffective: true, effectiveBy: input.effectiveBy, effectiveAt: new Date() }).where(eq(patientFollowUps.id, input.id));
   });
+  return { patientName: lead.patientName, crcName: input.commissionCrcId };
 }

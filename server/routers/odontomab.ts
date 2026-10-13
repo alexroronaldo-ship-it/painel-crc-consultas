@@ -5,6 +5,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { createValSale, deleteValSale, getValSale, listValSales, saveValPatientPhoto, updateValSale } from "../db";
 import { storagePut } from "../storage";
 import { requireOdontomabCrc } from "../odontomabCrcDb";
+import { recordManagerAudit } from "../managerAuditDb";
 import { odontomabCrcRouter } from "./odontomabCrc";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda").refine(value => !Number.isNaN(Date.parse(`${value}T12:00:00`)) && new Date(`${value}T12:00:00`).toISOString().slice(0, 10) === value, "Data inválida");
@@ -21,6 +22,7 @@ const patientInput = z.object({
   treatment: z.enum(ODONTOMAB_TREATMENTS, { error: "Selecione o tratamento" }),
   notes: z.string().trim().min(2, "Informe uma observação").max(1000),
 });
+const actorName = (user: { name: string | null; email: string | null; openId: string }) => user.name || user.email || user.openId;
 
 export const odontomabRouter = router({
   crcs: odontomabCrcRouter,
@@ -30,19 +32,22 @@ export const odontomabRouter = router({
   }),
   create: protectedProcedure.input(patientInput).mutation(async ({ ctx, input }) => {
     await requireOdontomabCrc(input.crcId);
-    await createValSale({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+    const id = await createValSale({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+    await recordManagerAudit({ module: "odontomab", action: "created", entityId: id, patientName: input.patientName, crcName: input.crcId, summary: `Venda Odontomab inscrita · ${input.treatment}`, performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
     return { success: true } as const;
   }),
-  update: protectedProcedure.input(patientInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+  update: protectedProcedure.input(patientInput.extend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const { id, ...values } = input;
     const existing = await getValSale(id);
     await requireOdontomabCrc(values.crcId, existing.crcId === values.crcId);
     await updateValSale(id, { ...values, value: values.value.replace(",", ".") });
+    await recordManagerAudit({ module: "odontomab", action: "updated", entityId: id, patientName: values.patientName, crcName: values.crcId, summary: "Venda Odontomab corrigida", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
     return { success: true } as const;
   }),
-  deleteOne: protectedProcedure.input(z.object({ id: z.number().int().positive(), password: z.string() })).mutation(async ({ input }) => {
+  deleteOne: protectedProcedure.input(z.object({ id: z.number().int().positive(), password: z.string() })).mutation(async ({ ctx, input }) => {
     if (input.password !== "0000") throw new TRPCError({ code: "FORBIDDEN", message: "Senha provisória incorreta" });
-    await deleteValSale(input.id);
+    const deleted = await deleteValSale(input.id);
+    await recordManagerAudit({ module: "odontomab", action: "deleted", entityId: deleted.id, patientName: deleted.patientName, crcName: deleted.crcId, summary: "Venda Odontomab excluída", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
     return { success: true } as const;
   }),
   uploadPatientPhoto: protectedProcedure.input(z.object({

@@ -74,20 +74,27 @@ export async function listClosures(month?: string) {
 
 export async function createClosure(input: InsertClosure) {
   return withActiveCrcWrite("funnel", input.crcName, async db => {
-  await db.insert(closures).values(input);
+  const result = await db.insert(closures).values(input);
+  return Number(result[0].insertId);
   });
 }
 
 export async function deleteClosure(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  const [current] = await db.select({ id: closures.id, patientName: closures.patientName, crcName: closures.crcName }).from(closures).where(eq(closures.id, id)).limit(1);
+  if (!current) throw new Error("Fechamento não encontrado");
   await db.delete(closures).where(eq(closures.id, id));
+  return current;
 }
 
 export async function updateClosureTime(id: number, totalTimeSeconds: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  const [current] = await db.select({ id: closures.id, patientName: closures.patientName, crcName: closures.crcName }).from(closures).where(eq(closures.id, id)).limit(1);
+  if (!current) throw new Error("Fechamento não encontrado");
   await db.update(closures).set({ totalTimeSeconds }).where(eq(closures.id, id));
+  return current;
 }
 
 export async function listCrcWeeklyActivities(month: string) {
@@ -239,14 +246,18 @@ export async function listValSales(month?: string) {
 export async function createValSale(input: InsertValSale) {
   if (!input.crcId) throw new Error("Selecione uma CRC cadastrada");
   return withActiveCrcWrite("odontomab", input.crcId, async db => {
-  await db.insert(valSales).values(input);
+  const result = await db.insert(valSales).values(input);
+  return Number(result[0].insertId);
   });
 }
 
 export async function deleteValSale(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  const [current] = await db.select({ id: valSales.id, patientName: valSales.patientName, crcId: valSales.crcId }).from(valSales).where(eq(valSales.id, id)).limit(1);
+  if (!current) throw new Error("Paciente não encontrado");
   await db.delete(valSales).where(eq(valSales.id, id));
+  return current;
 }
 
 export async function getValSale(id: number) {

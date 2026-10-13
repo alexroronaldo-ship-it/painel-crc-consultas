@@ -3,11 +3,11 @@ import type { TrpcContext } from "./_core/context";
 
 const { createCampaign, createClosure, createValSale, deleteClosure, deleteEmptyCampaign, deleteValSale, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, listValSales, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, storagePut, updateCampaign, updateClosureTime } = vi.hoisted(() => ({
   createCampaign: vi.fn(),
-  createClosure: vi.fn(),
-  createValSale: vi.fn(),
-  deleteClosure: vi.fn(),
+  createClosure: vi.fn().mockResolvedValue(7),
+  createValSale: vi.fn().mockResolvedValue(9),
+  deleteClosure: vi.fn().mockResolvedValue({ id: 7, patientName: "Paciente", crcName: "WISLLAYNI" }),
   deleteEmptyCampaign: vi.fn(),
-  deleteValSale: vi.fn(),
+  deleteValSale: vi.fn().mockResolvedValue({ id: 9, patientName: "Paciente", crcId: "VAL" }),
   listCampaigns: vi.fn().mockResolvedValue([]),
   listCampaignUsage: vi.fn().mockResolvedValue([]),
   listClosures: vi.fn().mockResolvedValue([]),
@@ -20,7 +20,7 @@ const { createCampaign, createClosure, createValSale, deleteClosure, deleteEmpty
   saveCrcWeeklyAppointment: vi.fn(),
   mergeCampaigns: vi.fn(),
   storagePut: vi.fn().mockResolvedValue({ key: "crc-profiles/wisllayni/portrait_1234.png", url: "/manus-storage/crc-profiles/wisllayni/portrait_1234.png" }),
-  updateClosureTime: vi.fn(),
+  updateClosureTime: vi.fn().mockResolvedValue({ id: 7, patientName: "Paciente", crcName: "WISLLAYNI" }),
   updateCampaign: vi.fn(),
 }));
 
@@ -45,6 +45,7 @@ vi.mock("./db", () => ({
   updateClosureTime,
   updateCampaign,
 }));
+vi.mock("./managerAuditDb", () => ({ recordManagerAudit: vi.fn() }));
 vi.mock("./storage", () => ({ storagePut }));
 vi.mock("./odontomabCrcDb", () => ({ requireOdontomabCrc: vi.fn().mockResolvedValue({ id: "VAL", name: "Vivi" }) }));
 

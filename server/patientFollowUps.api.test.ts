@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const mocks = vi.hoisted(() => ({ listPatientFollowUps: vi.fn().mockResolvedValue([]), createPatientFollowUp: vi.fn(), updatePatientFollowUp: vi.fn(), deletePatientFollowUp: vi.fn(), effectivePatientFollowUp: vi.fn() }));
+const mocks = vi.hoisted(() => ({ listPatientFollowUps: vi.fn().mockResolvedValue([]), createPatientFollowUp: vi.fn().mockResolvedValue(7), updatePatientFollowUp: vi.fn(), deletePatientFollowUp: vi.fn().mockResolvedValue({ id: 7, patientName: "Paciente em acompanhamento", crcName: "WISLLAYNI" }), effectivePatientFollowUp: vi.fn().mockResolvedValue({ patientName: "Paciente em acompanhamento", crcName: "JAYZA" }) }));
 vi.mock("./patientFollowUpDb", () => mocks);
+vi.mock("./managerAuditDb", () => ({ recordManagerAudit: vi.fn() }));
 import { appRouter } from "./routers";
 
 function context(): TrpcContext { return { user: { id: 4, openId: "follow-up-test", name: "Gerência", email: null, loginMethod: "manus", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] }; }

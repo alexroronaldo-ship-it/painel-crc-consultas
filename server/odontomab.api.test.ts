@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { ODONTOMAB_INSURANCE_PLANS } from "../shared/odontomab";
-const mocks = vi.hoisted(() => ({ createValSale: vi.fn(), deleteValSale: vi.fn(), getValSale: vi.fn().mockResolvedValue({ id: 9, crcId: "VAL" }), listValSales: vi.fn().mockResolvedValue([]), saveValPatientPhoto: vi.fn(), updateValSale: vi.fn(), storagePut: vi.fn().mockResolvedValue({ key: "patient-photo.png", url: "/manus-storage/patient-photo.png" }) }));
+const mocks = vi.hoisted(() => ({ createValSale: vi.fn().mockResolvedValue(9), deleteValSale: vi.fn().mockResolvedValue({ id: 9, patientName: "Paciente exemplo", crcId: "VAL" }), getValSale: vi.fn().mockResolvedValue({ id: 9, crcId: "VAL" }), listValSales: vi.fn().mockResolvedValue([]), saveValPatientPhoto: vi.fn(), updateValSale: vi.fn(), storagePut: vi.fn().mockResolvedValue({ key: "patient-photo.png", url: "/manus-storage/patient-photo.png" }) }));
 vi.mock("./db", () => mocks);
+vi.mock("./managerAuditDb", () => ({ recordManagerAudit: vi.fn() }));
 const crcMocks = vi.hoisted(() => ({ requireOdontomabCrc: vi.fn().mockResolvedValue({ id: "VAL", name: "Vivi" }) }));
 vi.mock("./odontomabCrcDb", () => crcMocks);
 vi.mock("./storage", () => ({ storagePut: mocks.storagePut }));

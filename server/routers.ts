@@ -12,6 +12,7 @@ import { crcTransfersRouter } from "./routers/crcTransfers";
 import { managerRouter } from "./routers/manager";
 import { patientFollowUpsRouter } from "./routers/patientFollowUps";
 import { assertOrtoCrcActive } from "./crcTransferDb";
+import { recordManagerAudit } from "./managerAuditDb";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
 const weeklyActivityNames = ["WISLLAYNI", "JAYZA", "VAL"] as const;
@@ -28,6 +29,7 @@ const assertCampaignDates = (input: { startDate: string; endDate?: string }) => 
 const assertManager = (role: string) => {
   if (role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Somente a gerência pode alterar campanhas" });
 };
+const actorName = (user: { name: string | null; email: string | null; openId: string }) => user.name || user.email || user.openId;
 
 export const appRouter = router({
   system: systemRouter,
@@ -69,15 +71,17 @@ export const appRouter = router({
       .query(({ input }) => listClosures(input?.month)),
     deleteOne: protectedProcedure
       .input(z.object({ id: z.number().int().positive(), password: z.string() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         if (input.password !== "0000") throw new Error("Senha provisória incorreta");
-        await deleteClosure(input.id);
+        const deleted = await deleteClosure(input.id);
+        await recordManagerAudit({ module: "marketing", action: "deleted", entityId: deleted.id, patientName: deleted.patientName, crcName: deleted.crcName, summary: "Fechamento de Marketing excluído", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
         return { success: true } as const;
       }),
     updateTime: protectedProcedure
       .input(z.object({ id: z.number().int().positive(), totalTimeSeconds: z.number().int().min(0).max(86400) }))
-      .mutation(async ({ input }) => {
-        await updateClosureTime(input.id, input.totalTimeSeconds);
+      .mutation(async ({ ctx, input }) => {
+        const updated = await updateClosureTime(input.id, input.totalTimeSeconds);
+        await recordManagerAudit({ module: "marketing", action: "updated", entityId: updated.id, patientName: updated.patientName, crcName: updated.crcName, summary: "Tempo de atendimento corrigido", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
         return { success: true } as const;
       }),
     create: protectedProcedure.input(z.object({
@@ -96,7 +100,8 @@ export const appRouter = router({
       leadOrigin: z.string().trim().min(2, "Informe a origem do lead").max(160).optional(),
     })).mutation(async ({ ctx, input }) => {
       await assertOrtoCrcActive("funnel", input.crcName);
-      await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      const id = await createClosure({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+      await recordManagerAudit({ module: "marketing", action: "created", entityId: id, patientName: input.patientName, crcName: input.crcName, summary: `Fechamento de Marketing inscrito · ${input.closedItem}`, performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
       return { success: true } as const;
     }),
   }),

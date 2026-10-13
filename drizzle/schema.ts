@@ -167,6 +167,23 @@ export const patientFollowUps = mysqlTable("patient_follow_ups", {
 export type PatientFollowUp = typeof patientFollowUps.$inferSelect;
 export type InsertPatientFollowUp = typeof patientFollowUps.$inferInsert;
 
+/** Histórico imutável das inscrições, correções, efetivações e exclusões exibido à gerente. */
+export const managerAuditLogs = mysqlTable("manager_audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  module: varchar("module", { length: 40 }).notNull(),
+  action: mysqlEnum("action", ["created", "updated", "deleted", "effective"]).notNull(),
+  entityId: int("entityId").notNull(),
+  patientName: varchar("patientName", { length: 160 }),
+  crcName: varchar("crcName", { length: 32 }),
+  summary: text("summary").notNull(),
+  performedBy: int("performedBy").notNull(),
+  performedByName: varchar("performedByName", { length: 160 }).notNull(),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+});
+
+export type ManagerAuditLog = typeof managerAuditLogs.$inferSelect;
+export type InsertManagerAuditLog = typeof managerAuditLogs.$inferInsert;
+
 /** Módulo independente: Pacientes Ativos Orto Implante. Não mistura registros com closures/campaigns. */
 export const orthoActiveCampaigns = mysqlTable("ortho_active_campaigns", {
   id: int("id").autoincrement().primaryKey(),

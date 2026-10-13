@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
 const mocks = vi.hoisted(() => ({
-  listActivePatients: vi.fn().mockResolvedValue([]), createActivePatient: vi.fn(), deleteActivePatient: vi.fn(), updateActivePatientTime: vi.fn(),
+  listActivePatients: vi.fn().mockResolvedValue([]), createActivePatient: vi.fn().mockResolvedValue(5), deleteActivePatient: vi.fn().mockResolvedValue({ id: 5, patientName: "Paciente Exemplo", crcName: "JAYZA" }), updateActivePatientTime: vi.fn().mockResolvedValue({ id: 5, patientName: "Paciente Exemplo", crcName: "JAYZA" }),
   listActiveCampaigns: vi.fn().mockResolvedValue([]), createActiveCampaign: vi.fn(), updateActiveCampaign: vi.fn(), deleteEmptyActiveCampaign: vi.fn(),
   listActiveGoals: vi.fn().mockResolvedValue([]), saveActiveGoal: vi.fn(), listActiveWeeks: vi.fn().mockResolvedValue([]), saveActiveTasks: vi.fn(), saveActiveAppointments: vi.fn(),
 }));
 vi.mock("./orthoActiveDb", () => mocks);
+vi.mock("./managerAuditDb", () => ({ recordManagerAudit: vi.fn() }));
 vi.mock("./crcTransferDb", () => ({ assertOrtoCrcActive: vi.fn().mockResolvedValue(undefined) }));
 import { appRouter } from "./routers";
 

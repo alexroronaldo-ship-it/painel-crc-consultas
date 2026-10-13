@@ -23,3 +23,7 @@
 - [x] Correção individual enquanto o lead estiver em acompanhamento e efetivação transacional única para Comissão Clínica, Marketing ou Vendas Odontomab, sob a CRC selecionada.
 - [x] Efetivação exige data, tratamento, valor e CRC; para Marketing exige campanha e para Odontomab exige tipo do paciente e convênio.
 - [x] Migrações 0022–0023 aplicadas em tabela inicialmente vazia; dados existentes não foram alterados. Tipagem, 22 suítes / 137 testes, build, diff e visual desktop/mobile validados.
+- [x] Comissão Clínica: dois gráficos horizontais agora mostram a referência mais usada e os tratamentos fechados (Implante, Prótese, Orto e Clínica geral), ordenados por quantidade de pacientes e com receita exibida como apoio.
+- [x] Painel da Gerente: histórico mensal protegido registra inscrições, correções, efetivações e exclusões com data/hora, módulo, paciente, CRC, resumo e usuário responsável.
+- [x] Migração 0024 criou o histórico de auditoria; registros atuais foram inseridos como inscrições preservando data e usuário de criação. Exclusões anteriores à implantação não foram inventadas; novas ações passam a ser auditadas automaticamente.
+- [x] Tipagem, 22 suítes / 138 testes, build, diff e visual desktop validados.
