@@ -20,15 +20,14 @@ describe("Odontomab — pacientes ativos e novos", () => {
     await expect(caller.create(input)).resolves.toEqual({ success: true });
     expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", treatment: "Implante", totalTimeSeconds: 90, createdBy: 1 }));
   });
-  it("salva e corrige os três status e rejeita status inválido", async () => {
+  it("aceita somente o status Paciente fechado", async () => {
     const caller = odontomabRouter.createCaller(ctx());
-    for (const internalStatus of ["closed", "not_closed", "follow_up"] as const) {
-      await caller.create({ ...input, internalStatus });
-      expect(mocks.createValSale).toHaveBeenLastCalledWith(expect.objectContaining({ internalStatus }));
-      await caller.update({ ...input, id: 9, internalStatus });
-      expect(mocks.updateValSale).toHaveBeenLastCalledWith(9, expect.objectContaining({ internalStatus }));
-    }
-    await expect(caller.create({ ...input, internalStatus: "invalid" } as never)).rejects.toThrow();
+    await caller.create(input);
+    expect(mocks.createValSale).toHaveBeenLastCalledWith(expect.objectContaining({ internalStatus: "closed" }));
+    await caller.update({ ...input, id: 9 });
+    expect(mocks.updateValSale).toHaveBeenLastCalledWith(9, expect.objectContaining({ internalStatus: "closed" }));
+    await expect(caller.create({ ...input, internalStatus: "follow_up" } as never)).rejects.toThrow();
+    await expect(caller.create({ ...input, internalStatus: "not_closed" } as never)).rejects.toThrow();
   });
   it("permite os cinco convênios e Particular para paciente novo", async () => {
     const caller = odontomabRouter.createCaller(ctx());
@@ -81,9 +80,9 @@ describe("Odontomab — pacientes ativos e novos", () => {
     expect(mocks.updateValSale).not.toHaveBeenCalled();
   });
   it("não expõe a chave de armazenamento ao listar fotos", async () => {
-    mocks.listValSales.mockResolvedValueOnce([{ id: 9, patientName: "Paciente", photoKey: "privada", photoUrl: "/manus-storage/photo.png", patientType: null }]);
+    mocks.listValSales.mockResolvedValueOnce([{ id: 9, patientName: "Paciente", photoKey: "privada", photoUrl: "/manus-storage/photo.png", patientType: null, internalStatus: "closed" }]);
     const caller = odontomabRouter.createCaller(ctx());
-    expect(await caller.list({ month: "2026-10" })).toEqual([{ id: 9, patientName: "Paciente", photoUrl: "/manus-storage/photo.png", patientType: null }]);
+    expect(await caller.list({ month: "2026-10" })).toEqual([{ id: 9, patientName: "Paciente", photoUrl: "/manus-storage/photo.png", patientType: null, internalStatus: "closed" }]);
     expect(mocks.listValSales).toHaveBeenCalledWith("2026-10");
   });
   it("envia e vincula a foto somente ao paciente selecionado", async () => {

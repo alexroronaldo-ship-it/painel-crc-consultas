@@ -31,7 +31,7 @@ export const orthoActiveRouter = router({
       reference: z.enum(ORTHO_REFERENCE_OPTIONS),
       closingDate: date, closedItem: z.string().trim().min(2).max(5000), value: money,
       totalTimeSeconds: z.number().int().min(0).max(86400).default(0),
-      internalStatus: z.enum(["closed", "follow_up", "not_closed"]), internalNotes: z.string().trim().min(2, "Informe uma observação interna").max(5000),
+      internalStatus: z.literal("closed", { error: "Somente pacientes fechados podem ser registrados" }), internalNotes: z.string().trim().min(2, "Informe uma observação interna").max(5000),
       campaignId: z.number().int().positive(),
     })).mutation(async ({ ctx, input }) => {
       await assertOrtoCrcActive("ortho_active", input.crcName);

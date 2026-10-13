@@ -56,7 +56,7 @@ export async function listClosures(month?: string) {
   const db = await getDb();
   if (!db) return [];
   if (!month) {
-    return db.select().from(closures).orderBy(desc(closures.closingDate), desc(closures.createdAt));
+    return db.select().from(closures).where(eq(closures.internalStatus, "closed")).orderBy(desc(closures.closingDate), desc(closures.createdAt));
   }
 
   const [year, monthNumber] = month.split("-").map(Number);
@@ -67,7 +67,7 @@ export async function listClosures(month?: string) {
   return db
     .select()
     .from(closures)
-    .where(and(gte(closures.closingDate, `${month}-01`), lt(closures.closingDate, `${nextMonth}-01`)))
+    .where(and(eq(closures.internalStatus, "closed"), gte(closures.closingDate, `${month}-01`), lt(closures.closingDate, `${nextMonth}-01`)))
     .orderBy(desc(closures.closingDate), desc(closures.createdAt))
     ;
 }
@@ -187,7 +187,7 @@ export async function updateCampaign(id: number, input: Pick<InsertCampaign, "na
 export async function listCampaignUsage() {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db.select({ campaignId: closures.campaignId, count: sql<number>`count(*)` }).from(closures).groupBy(closures.campaignId);
+  const rows = await db.select({ campaignId: closures.campaignId, count: sql<number>`count(*)` }).from(closures).where(eq(closures.internalStatus, "closed")).groupBy(closures.campaignId);
   return rows.filter(row => row.campaignId !== null).map(row => ({ campaignId: row.campaignId!, count: Number(row.count) }));
 }
 
@@ -221,7 +221,7 @@ export async function listValSales(month?: string) {
   const db = await getDb();
   if (!db) return [];
   if (!month) {
-    return db.select().from(valSales).orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
+    return db.select().from(valSales).where(eq(valSales.internalStatus, "closed")).orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
   }
 
   const [year, monthNumber] = month.split("-").map(Number);
@@ -232,7 +232,7 @@ export async function listValSales(month?: string) {
   return db
     .select()
     .from(valSales)
-    .where(and(gte(valSales.saleDate, `${month}-01`), lt(valSales.saleDate, `${nextMonth}-01`)))
+    .where(and(eq(valSales.internalStatus, "closed"), gte(valSales.saleDate, `${month}-01`), lt(valSales.saleDate, `${nextMonth}-01`)))
     .orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
 }
 

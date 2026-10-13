@@ -84,7 +84,7 @@ export const appRouter = router({
       closedItem: z.string().trim().min(2, "Informe o que foi fechado").max(5000),
       value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
       totalTimeSeconds: z.number().int().min(0).max(86400),
-      internalStatus: z.enum(["closed", "follow_up", "not_closed"]),
+      internalStatus: z.literal("closed", { error: "Somente pacientes fechados podem ser registrados" }),
       internalNotes: z.string().trim().min(2, "Informe uma observação interna").max(5000),
       nextStep: z.string().trim().max(500).optional(),
       internalClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data interna válida").optional(),

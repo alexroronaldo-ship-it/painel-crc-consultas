@@ -14,10 +14,10 @@ describe("Pacientes Ativos — métricas isoladas", () => {
     expect(calculateActiveMetrics(records, "WISLLAYNI").commission).toBe(16.2);
     expect(calculateActiveMetrics(records, "JAYZA").commission).toBe(6);
     expect(calculateActiveMetrics(records).revenue).toBe(11100);
-    expect(calculateActiveMetrics(records).count).toBe(3);
+    expect(calculateActiveMetrics(records).count).toBe(2);
   });
-  it("exclui acompanhamento do faturamento e preserva o cálculo de durações históricas", () => {
-    expect(calculateActiveMetrics(records, "JAYZA")).toMatchObject({ count: 2, closedCount: 1, revenue: 3000, averageTimeSeconds: 180 });
+  it("conta somente pacientes fechados e calcula o tempo apenas desses registros", () => {
+    expect(calculateActiveMetrics(records, "JAYZA")).toMatchObject({ count: 1, closedCount: 1, revenue: 3000, averageTimeSeconds: 180 });
     expect(calculateActiveMetrics([{ crcName: "JAYZA", value: "0.00", totalTimeSeconds: 0, internalStatus: "not_closed" }], "JAYZA").averageTimeSeconds).toBeNull();
   });
 });

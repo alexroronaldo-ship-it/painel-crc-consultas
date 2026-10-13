@@ -17,7 +17,7 @@ function nextMonth(month: string) {
 export async function listActivePatients(month?: string) {
   const db = await requiredDb();
   const query = db.select().from(orthoActivePatients);
-  const filtered = month ? query.where(and(gte(orthoActivePatients.closingDate, `${month}-01`), lt(orthoActivePatients.closingDate, `${nextMonth(month)}-01`))) : query;
+  const filtered = month ? query.where(and(eq(orthoActivePatients.internalStatus, "closed"), gte(orthoActivePatients.closingDate, `${month}-01`), lt(orthoActivePatients.closingDate, `${nextMonth(month)}-01`))) : query.where(eq(orthoActivePatients.internalStatus, "closed"));
   return filtered.orderBy(desc(orthoActivePatients.closingDate), desc(orthoActivePatients.createdAt));
 }
 export async function createActivePatient(input: InsertOrthoActivePatient) {

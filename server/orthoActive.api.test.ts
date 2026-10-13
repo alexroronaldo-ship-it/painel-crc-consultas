@@ -49,6 +49,12 @@ describe("API isolada de Pacientes Ativos Orto Implante", () => {
     }
     await expect(caller.orthoActive.patients.create({ ...sale, reference: "Outro" } as never)).rejects.toThrow();
   });
+  it("aceita somente pacientes fechados", async () => {
+    const caller = appRouter.createCaller(context());
+    await expect(caller.orthoActive.patients.create({ ...sale, internalStatus: "follow_up" } as never)).rejects.toThrow();
+    await expect(caller.orthoActive.patients.create({ ...sale, internalStatus: "not_closed" } as never)).rejects.toThrow();
+    expect(mocks.createActivePatient).not.toHaveBeenCalled();
+  });
   it("dispensa tempo e recusa novo registro para Jéssika", async () => {
     const caller = appRouter.createCaller(context());
     const { totalTimeSeconds: _time, ...withoutTime } = sale;

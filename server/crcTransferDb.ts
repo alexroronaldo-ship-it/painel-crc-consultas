@@ -142,7 +142,7 @@ async function records(
     const query = db
       .select()
       .from(valSales)
-      .where(eq(valSales.crcId, sourceId))
+      .where(and(eq(valSales.crcId, sourceId), eq(valSales.internalStatus, "closed")))
       .orderBy(valSales.id);
     return lock ? query.for("update") : query;
   }
@@ -150,14 +150,14 @@ async function records(
     const query = db
       .select()
       .from(closures)
-      .where(eq(closures.crcName, sourceId))
+      .where(and(eq(closures.crcName, sourceId), eq(closures.internalStatus, "closed")))
       .orderBy(closures.id);
     return lock ? query.for("update") : query;
   }
   const query = db
     .select()
     .from(orthoActivePatients)
-    .where(eq(orthoActivePatients.crcName, sourceId))
+    .where(and(eq(orthoActivePatients.crcName, sourceId), eq(orthoActivePatients.internalStatus, "closed")))
     .orderBy(orthoActivePatients.id);
   return lock ? query.for("update") : query;
 }
@@ -221,7 +221,7 @@ export async function transferAndRetireCrc(
       await tx
         .update(valSales)
         .set({ crcId: targetId })
-        .where(eq(valSales.crcId, sourceId));
+        .where(and(eq(valSales.crcId, sourceId), eq(valSales.internalStatus, "closed")));
       await tx
         .update(odontomabCrcs)
         .set({
@@ -235,12 +235,12 @@ export async function transferAndRetireCrc(
         await tx
           .update(closures)
           .set({ crcName: targetId })
-          .where(eq(closures.crcName, sourceId));
+          .where(and(eq(closures.crcName, sourceId), eq(closures.internalStatus, "closed")));
       else
         await tx
           .update(orthoActivePatients)
           .set({ crcName: targetId })
-          .where(eq(orthoActivePatients.crcName, sourceId));
+          .where(and(eq(orthoActivePatients.crcName, sourceId), eq(orthoActivePatients.internalStatus, "closed")));
       await tx
         .insert(ortoCrcStates)
         .values({

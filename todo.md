@@ -8,4 +8,5 @@
 - [x] Registros novos de Marketing, Comissão Clínica e Odontomab com todos os campos exibidos obrigatórios; campanha é obrigatória no Marketing e na Comissão Clínica.
 - [x] Regra de resposta rápida corrigida para incluir médias de até dois minutos.
 - [x] Migração 0021 aplicada, preservando todos os registros existentes, com a coluna opcional `treatment` em `val_sales`.
-- [x] Tipagem, 123 testes, build, diff e capturas desktop/mobile validados.
+- [x] **Operação exclusiva para pacientes fechados:** os três formulários fixam o status como Fechado; APIs rejeitam `Em acompanhamento` e `Não fechado`; listas, dashboards, gráficos, comissões, uso de campanhas e transferências consideram exclusivamente registros fechados. Registros históricos com outros status são preservados no banco, mas ficam fora dos resultados operacionais.
+- [x] Tipagem, 125 testes, build, diff e capturas desktop/mobile validados.

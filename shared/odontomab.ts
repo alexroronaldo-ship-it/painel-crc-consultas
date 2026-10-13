@@ -22,8 +22,9 @@ export function selectOdontomabCrc<T extends { id: string; isActive: boolean }>(
 
 export function calculateOdontomabMetrics(rows: Array<{ patientType?: string | null; value: string | number; internalStatus?: OdontomabStatus }>) {
   const summarize = (items: typeof rows) => {
-    const cents = items.filter(item => !item.internalStatus || item.internalStatus === "closed").reduce((sum, item) => sum + Math.round(Number(item.value) * 100), 0);
-    return { count: items.length, revenue: cents / 100, commission: Math.round(cents * ODONTOMAB_COMMISSION_RATE) / 100 };
+    const closed = items.filter(item => item.internalStatus === "closed" || !item.internalStatus);
+    const cents = closed.reduce((sum, item) => sum + Math.round(Number(item.value) * 100), 0);
+    return { count: closed.length, revenue: cents / 100, commission: Math.round(cents * ODONTOMAB_COMMISSION_RATE) / 100 };
   };
   return {
     total: summarize(rows),

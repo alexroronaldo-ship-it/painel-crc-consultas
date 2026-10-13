@@ -8,9 +8,9 @@ export function calculateActiveMetrics(records: ActiveSale[], crcName?: ActiveCr
   const own = records.filter(item => item.crcName in ACTIVE_CRC_LABELS && (!crcName || item.crcName === crcName));
   const closed = own.filter(item => item.internalStatus === "closed");
   const revenue = closed.reduce((sum, item) => sum + Number(item.value), 0);
-  const measured = own.filter(item => item.totalTimeSeconds > 0);
+  const measured = closed.filter(item => item.totalTimeSeconds > 0);
   return {
-    count: own.length,
+    count: closed.length,
     closedCount: closed.length,
     revenue,
     commission: Math.round(revenue * ACTIVE_COMMISSION_RATE * 100) / 100,

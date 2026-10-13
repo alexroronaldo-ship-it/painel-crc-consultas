@@ -13,7 +13,7 @@ const patientInput = z.object({
   patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
   phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
   patientType: z.enum(["active", "new"], { error: "Selecione paciente Ativo ou Novo" }),
-  internalStatus: z.enum(["closed", "not_closed", "follow_up"], { error: "Selecione o status do paciente" }),
+  internalStatus: z.literal("closed", { error: "Somente pacientes fechados podem ser registrados" }),
   saleDate: date,
   value: z.string().regex(/^\d{1,10}(,\d{1,2})?$/, "Informe um valor válido"),
   totalTimeSeconds: z.number().int().min(0).max(86400),

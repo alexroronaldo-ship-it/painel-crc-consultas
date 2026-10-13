@@ -188,6 +188,24 @@ describe("Transferência transacional de CRC", () => {
     });
     expect(calls).toHaveLength(0);
   });
+  it("resume e transfere apenas fechamentos, preservando histórico não fechado fora da operação", async () => {
+    data.val_sales.push({
+      ...data.val_sales[0],
+      id: 99,
+      crcId: "VAL",
+      internalStatus: "follow_up",
+      value: "999.99",
+    });
+    const summary = await previewCrcTransfer("odontomab", "VAL", "ODO_ALICE");
+    expect(summary).toMatchObject({ recordCount: 2, totalValue: "8100.10" });
+    await transferAndRetireCrc("odontomab", "VAL", "ODO_ALICE", summary.revision, 7);
+    expect(data.val_sales.find(row => row.id === 99)).toMatchObject({
+      crcId: "VAL",
+      internalStatus: "follow_up",
+      value: "999.99",
+    });
+    expect(data.crc_transfers[0]?.recordIds).toBe(JSON.stringify([1, 2]));
+  });
   it.each([
     ["odontomab", "VAL", "ODO_ALICE", "val_sales", "crcId"],
     ["funnel", "WISLLAYNI", "JAYZA", "closures", "crcName"],

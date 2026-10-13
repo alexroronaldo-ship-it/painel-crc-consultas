@@ -34,16 +34,16 @@ describe("Odontomab — métricas por tipo", () => {
   });
 });
 
-it("conta todos os pacientes, mas só vendas fechadas geram receita e comissão", () => {
+it("conta e calcula somente pacientes fechados", () => {
   const result = calculateOdontomabMetrics([
     { patientType: "active", value: "1000", internalStatus: "closed" },
     { patientType: "active", value: "2000", internalStatus: "follow_up" },
     { patientType: "new", value: "3000", internalStatus: "not_closed" },
     { patientType: "new", value: "500" },
   ]);
-  expect(result.total).toEqual({ count: 4, revenue: 1500, commission: 3 });
+  expect(result.total).toEqual({ count: 2, revenue: 1500, commission: 3 });
   expect(result.active.revenue).toBe(1000);
-  expect(result.new.revenue).toBe(500);
+  expect(result.new).toEqual({ count: 1, revenue: 500, commission: 1 });
 });
 
 it("agrupa a receita fechada por convênio e preserva convênio sem informação", () => {
@@ -53,7 +53,7 @@ it("agrupa a receita fechada por convênio e preserva convênio sem informação
     { insurancePlan: "Unimed", value: "3000.00", internalStatus: "closed" },
     { insurancePlan: null, value: "500.00", internalStatus: "closed" },
   ]);
-  expect(result.find(item => item.plan === "Rede Unna (Odontoprev)")).toEqual({ plan: "Rede Unna (Odontoprev)", count: 2, revenue: 8100 });
+  expect(result.find(item => item.plan === "Rede Unna (Odontoprev)")).toEqual({ plan: "Rede Unna (Odontoprev)", count: 1, revenue: 8100 });
   expect(result.find(item => item.plan === "Unimed")).toEqual({ plan: "Unimed", count: 1, revenue: 3000 });
   expect(result.find(item => item.plan === "Não informado")).toEqual({ plan: "Não informado", count: 1, revenue: 500 });
 });

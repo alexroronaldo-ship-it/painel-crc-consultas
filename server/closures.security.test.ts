@@ -309,6 +309,23 @@ describe("closures protected deletion", () => {
     expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 4, value: "8100.00" }));
   });
 
+  it("accepts only closed patients in the Marketing commission", async () => {
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.closures.create({
+      crcName: "WISLLAYNI",
+      patientName: "Paciente em acompanhamento",
+      phone: "11999990000",
+      closingDate: "2026-09-18",
+      closedItem: "Procedimento",
+      value: "8100,00",
+      totalTimeSeconds: 90,
+      internalStatus: "follow_up" as never,
+      internalNotes: "Registro não fechado",
+      campaignId: 4,
+    })).rejects.toThrow();
+    expect(createClosure).not.toHaveBeenCalled();
+  });
+
   it("rejects Val as a closure CRC to keep her sales separate", async () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.closures.create({
