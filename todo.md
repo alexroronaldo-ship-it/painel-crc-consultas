@@ -5,7 +5,7 @@
 - [x] O resumo mostra somente a pontuação consolidada e o valor total gerado; as categorias de pontos não ficam espalhadas no painel.
 - [x] Comissão de Vendas – Odontomab: tratamento bloqueado em Implante, Prótese, Orto e Clínica em geral; tabela e gráfico financeiro por tratamento adicionados.
 - [x] Gráfico financeiro por convênio mantido com receita em reais por convênio; registros históricos sem tratamento ficam preservados e são sinalizados para correção manual.
-- [x] Registros novos de Marketing, Comissão Clínica e Odontomab com todos os campos exibidos obrigatórios; campanha é obrigatória no Marketing e na Comissão Clínica.
+- [x] Registros novos de Marketing, Comissão Clínica e Odontomab com todos os campos exibidos obrigatórios; campanha é obrigatória apenas no Marketing.
 - [x] Regra de resposta rápida corrigida para incluir médias de até dois minutos.
 - [x] Migração 0021 aplicada, preservando todos os registros existentes, com a coluna opcional `treatment` em `val_sales`.
 - [x] **Operação exclusiva para pacientes fechados:** os três formulários fixam o status como Fechado; APIs rejeitam `Em acompanhamento` e `Não fechado`; listas, dashboards, gráficos, comissões, uso de campanhas e transferências consideram exclusivamente registros fechados. Registros históricos com outros status são preservados no banco, mas ficam fora dos resultados operacionais.
@@ -13,3 +13,13 @@
 - [x] Consulta gerencial mensal consolidando dados reais de Marketing, Clínica e Odontomab, com visão individual por CRC e sem misturar registros entre módulos.
 - [x] Gráfico e resumo de 0–100 pontos seguindo os prints: vendas (50), tarefas válidas (15), respostas até 2 minutos (15), agendamentos (10) e qualidade dos registros (10), incluindo pontos obtidos e faltantes.
 - [x] Tipagem, 21 suítes / 132 testes, build, diff e capturas desktop/mobile do acesso protegido validados.
+
+# Comissão Clínica e acompanhamento de pacientes
+
+- [x] Removido o cadastro e a exibição de campanhas da página Comissão Clínica – Ortoimplant, preservando registros históricos sem apagá-los.
+- [x] Tratamento da Comissão Clínica limitado a Implante, Prótese, Orto e Clínica geral; novo cadastro exige uma dessas opções.
+- [x] Dashboards próprios de referência e receita por tratamento adicionados à Comissão Clínica, com valores financeiros e quantidade de registros.
+- [x] Nova página Acompanhamento de Pacientes para registrar leads, informar CRC, campanha (teve/não teve), contato, referência, dados de fechamento e observação.
+- [x] Correção individual enquanto o lead estiver em acompanhamento e efetivação transacional única para Comissão Clínica, Marketing ou Vendas Odontomab, sob a CRC selecionada.
+- [x] Efetivação exige data, tratamento, valor e CRC; para Marketing exige campanha e para Odontomab exige tipo do paciente e convênio.
+- [x] Migrações 0022–0023 aplicadas em tabela inicialmente vazia; dados existentes não foram alterados. Tipagem, 22 suítes / 137 testes, build, diff e visual desktop/mobile validados.

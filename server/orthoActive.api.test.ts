@@ -13,7 +13,7 @@ import { appRouter } from "./routers";
 function context(role: "admin" | "user" = "admin"): TrpcContext {
   return { user: { id: 3, openId: "ortho-test", name: "Gerência", email: null, loginMethod: "manus", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
-const sale = { crcName: "JAYZA", patientName: "Paciente Exemplo", phone: "11999990000", contactChannel: "WhatsApp", reference: "Não se aplica", closingDate: "2026-10-07", closedItem: "Tratamento", value: "2500,00", totalTimeSeconds: 90, internalStatus: "closed", internalNotes: "Registro completo", campaignId: 1 } as const;
+const sale = { crcName: "JAYZA", patientName: "Paciente Exemplo", phone: "11999990000", contactChannel: "WhatsApp", reference: "Não se aplica", closingDate: "2026-10-07", closedItem: "Implante", value: "2500,00", totalTimeSeconds: 90, internalStatus: "closed", internalNotes: "Registro completo" } as const;
 
 describe("API isolada de Pacientes Ativos Orto Implante", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -73,26 +73,24 @@ describe("API isolada de Pacientes Ativos Orto Implante", () => {
     expect(mocks.deleteActivePatient).toHaveBeenCalledWith(5);
     expect(mocks.updateActivePatientTime).toHaveBeenCalledWith(5, 110);
   });
-  it("salva campanhas e metas exclusivamente na base nova", async () => {
+  it("salva metas clínicas sem qualquer cadastro de campanha", async () => {
     const caller = appRouter.createCaller(context());
-    await caller.orthoActive.campaigns.create({ name: "Campanha própria", origin: "Indicação", startDate: "2026-10-01", weeklyGoal: "9000,00" });
     await caller.orthoActive.goals.save({ crcName: "JAYZA", month: "2026-10", monthlyGoal: "25000,00", weeklySalesGoal: "6000,00", timeGoalSeconds: 90 });
-    expect(mocks.createActiveCampaign).toHaveBeenCalledWith(expect.objectContaining({ weeklyGoal: "9000.00", createdBy: 3 }));
+    expect(mocks.createActiveCampaign).not.toHaveBeenCalled();
     expect(mocks.saveActiveGoal).toHaveBeenCalledWith(expect.objectContaining({ crcName: "JAYZA", monthlyGoal: "25000.00", weeklySalesGoal: "6000.00", timeGoalSeconds: 90 }));
   });
-  it("não deixa corrigir uma campanha com fim anterior ao início", async () => {
+  it("aceita somente os quatro tratamentos padronizados", async () => {
     const caller = appRouter.createCaller(context());
-    await expect(caller.orthoActive.campaigns.update({ id: 1, name: "Campanha própria", origin: "Indicação", startDate: "2026-10-20", endDate: "2026-10-01" })).rejects.toThrow();
-    expect(mocks.updateActiveCampaign).not.toHaveBeenCalled();
+    for (const closedItem of ["Implante", "Prótese", "Orto", "Clínica geral"] as const) {
+      await caller.orthoActive.patients.create({ ...sale, closedItem });
+      expect(mocks.createActivePatient).toHaveBeenLastCalledWith(expect.objectContaining({ closedItem }));
+    }
+    await expect(caller.orthoActive.patients.create({ ...sale, closedItem: "Outro" } as never)).rejects.toThrow();
+    expect(mocks.createActiveCampaign).not.toHaveBeenCalled();
   });
-  it("somente a gerência ajusta metas e exclui campanhas vazias com senha", async () => {
+  it("somente a gerência ajusta metas clínicas", async () => {
     const ordinary = appRouter.createCaller(context("user"));
     await expect(ordinary.orthoActive.goals.save({ crcName: "JAYZA", month: "2026-10", monthlyGoal: "20000" })).rejects.toThrow("Somente a gerência");
-    await expect(ordinary.orthoActive.campaigns.deleteOne({ id: 1, password: "0000" })).rejects.toThrow("Somente a gerência");
-    const admin = appRouter.createCaller(context());
-    await expect(admin.orthoActive.campaigns.deleteOne({ id: 1, password: "errada" })).rejects.toThrow("Senha provisória incorreta");
-    await admin.orthoActive.campaigns.deleteOne({ id: 1, password: "0000" });
-    expect(mocks.deleteEmptyActiveCampaign).toHaveBeenCalledWith(1);
   });
   it("registra tarefas e agendamentos S1–S5 sem tocar a base semanal do funil", async () => {
     const caller = appRouter.createCaller(context());

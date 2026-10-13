@@ -155,6 +155,20 @@
       "when": 1791887931877,
       "tag": "0021_nasty_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "5",
+      "when": 1791914426815,
+      "tag": "0022_busy_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1791914801693,
+      "tag": "0023_zippy_maggott",
+      "breakpoints": true
     }
   ]
 }

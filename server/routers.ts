@@ -10,6 +10,7 @@ import { orthoActiveRouter } from "./routers/orthoActive";
 import { odontomabRouter } from "./routers/odontomab";
 import { crcTransfersRouter } from "./routers/crcTransfers";
 import { managerRouter } from "./routers/manager";
+import { patientFollowUpsRouter } from "./routers/patientFollowUps";
 import { assertOrtoCrcActive } from "./crcTransferDb";
 
 const crcNames = ["WISLLAYNI", "JAYZA"] as const;
@@ -33,6 +34,7 @@ export const appRouter = router({
   orthoActive: orthoActiveRouter,
   crcTransfers: crcTransfersRouter,
   manager: managerRouter,
+  patientFollowUps: patientFollowUpsRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

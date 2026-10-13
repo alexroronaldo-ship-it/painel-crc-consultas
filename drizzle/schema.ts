@@ -49,6 +49,8 @@ export const closures = mysqlTable("closures", {
   closedItem: text("closedItem").notNull(),
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
+  contactChannel: mysqlEnum("contactChannel", ["WhatsApp", "Ligação", "Presencial", "Instagram"]),
+  reference: varchar("reference", { length: 160 }),
   internalStatus: mysqlEnum("internalStatus", ["closed", "follow_up", "not_closed"]).notNull().default("closed"),
   internalNotes: text("internalNotes"),
   nextStep: text("nextStep"),
@@ -125,6 +127,8 @@ export const valSales = mysqlTable("val_sales", {
   totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
   insurancePlan: varchar("insurancePlan", { length: 40 }),
   treatment: varchar("treatment", { length: 40 }),
+  contactChannel: mysqlEnum("contactChannel", ["WhatsApp", "Ligação", "Presencial", "Instagram"]),
+  reference: varchar("reference", { length: 160 }),
   notes: text("notes"),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -132,6 +136,36 @@ export const valSales = mysqlTable("val_sales", {
 
 export type ValSale = typeof valSales.$inferSelect;
 export type InsertValSale = typeof valSales.$inferInsert;
+
+/** Acompanhamento transversal: lead pendente que, ao efetivar, gera uma venda somente no destino de comissão escolhido. */
+export const patientFollowUps = mysqlTable("patient_follow_ups", {
+  id: int("id").autoincrement().primaryKey(),
+  crcName: varchar("crcName", { length: 32 }).notNull(),
+  hasCampaign: boolean("hasCampaign").notNull().default(false),
+  campaignId: int("campaignId"),
+  patientName: varchar("patientName", { length: 160 }).notNull(),
+  phone: varchar("phone", { length: 40 }).notNull(),
+  contactChannel: mysqlEnum("contactChannel", ["WhatsApp", "Ligação", "Presencial", "Instagram"]).notNull(),
+  reference: mysqlEnum("reference", ["Dentista", "Paciente", "Marketing", "Não se aplica"]).notNull(),
+  closingDate: varchar("closingDate", { length: 10 }),
+  closedItem: varchar("closedItem", { length: 40 }),
+  value: decimal("value", { precision: 12, scale: 2 }),
+  notes: text("notes").notNull(),
+  commissionDestination: mysqlEnum("commissionDestination", ["clinic", "marketing", "odontomab"]),
+  commissionCrcId: varchar("commissionCrcId", { length: 32 }),
+  destinationRecordId: int("destinationRecordId"),
+  saleEffective: boolean("saleEffective").notNull().default(false),
+  effectiveBy: int("effectiveBy"),
+  effectiveAt: timestamp("effectiveAt"),
+  correctedBy: int("correctedBy"),
+  correctedAt: timestamp("correctedAt"),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PatientFollowUp = typeof patientFollowUps.$inferSelect;
+export type InsertPatientFollowUp = typeof patientFollowUps.$inferInsert;
 
 /** Módulo independente: Pacientes Ativos Orto Implante. Não mistura registros com closures/campaigns. */
 export const orthoActiveCampaigns = mysqlTable("ortho_active_campaigns", {

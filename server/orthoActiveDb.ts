@@ -22,11 +22,7 @@ export async function listActivePatients(month?: string) {
 }
 export async function createActivePatient(input: InsertOrthoActivePatient) {
   return withActiveCrcWrite("ortho_active", input.crcName, async db => {
-  if (input.campaignId) {
-    const campaign = await db.select({ id: orthoActiveCampaigns.id }).from(orthoActiveCampaigns).where(eq(orthoActiveCampaigns.id, input.campaignId)).limit(1);
-    if (!campaign.length) throw new Error("Campanha dos pacientes ativos não encontrada");
-  }
-  await db.insert(orthoActivePatients).values(input);
+  await db.insert(orthoActivePatients).values({ ...input, campaignId: null });
   });
 }
 export async function deleteActivePatient(id: number) {
