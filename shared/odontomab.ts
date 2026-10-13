@@ -2,6 +2,7 @@ export const ODONTOMAB_STATUS_LABELS = { closed: "Paciente fechado", not_closed:
 export type OdontomabStatus = keyof typeof ODONTOMAB_STATUS_LABELS;
 
 export const ODONTOMAB_INSURANCE_PLANS = ["Rede Unna (Odontoprev)", "Amil", "Hapvida", "Unimed", "Uniodonto", "Particular"] as const;
+export const ODONTOMAB_TREATMENTS = ["Implante", "Prótese", "Orto", "Clínica em geral"] as const;
 export const ODONTOMAB_COMMISSION_RATE = 0.002;
 export const PATIENT_TYPE_LABELS = { active: "Ativo", new: "Novo" } as const;
 
@@ -39,5 +40,13 @@ export function calculateOdontomabInsuranceMetrics(rows: Array<{ insurancePlan?:
     const items = rows.filter(row => displayOdontomabInsurance(row.insurancePlan) === plan || (!row.insurancePlan && plan === "Não informado"));
     const metrics = calculateOdontomabMetrics(items);
     return { plan, count: metrics.total.count, revenue: metrics.total.revenue };
+  });
+}
+
+export function calculateOdontomabTreatmentMetrics(rows: Array<{ treatment?: string | null; value: string | number; internalStatus?: OdontomabStatus }>) {
+  return ODONTOMAB_TREATMENTS.map(treatment => {
+    const items = rows.filter(row => row.treatment === treatment && (!row.internalStatus || row.internalStatus === "closed"));
+    const metrics = calculateOdontomabMetrics(items);
+    return { treatment, count: metrics.total.count, revenue: metrics.total.revenue };
   });
 }

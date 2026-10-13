@@ -303,6 +303,7 @@ describe("closures protected deletion", () => {
       value: "8100,00",
       totalTimeSeconds: 90,
       internalStatus: "closed",
+      internalNotes: "Fechamento registrado",
       campaignId: 4,
     })).resolves.toEqual({ success: true });
     expect(createClosure).toHaveBeenCalledWith(expect.objectContaining({ campaignId: 4, value: "8100.00" }));
@@ -319,6 +320,8 @@ describe("closures protected deletion", () => {
       value: "1000,00",
       totalTimeSeconds: 90,
       internalStatus: "closed",
+      internalNotes: "Fechamento registrado",
+      campaignId: 4,
     } as Parameters<typeof caller.closures.create>[0])).rejects.toThrow();
     expect(createClosure).not.toHaveBeenCalled();
   });
@@ -328,8 +331,8 @@ describe("closures protected deletion", () => {
     await expect(caller.valSales.list({ month: "2026-09" })).resolves.toEqual([]);
     expect(listValSales).toHaveBeenCalledWith("2026-09");
 
-    await expect(caller.valSales.create({ crcId: "VAL", patientName: "Paciente Teste", patientType: "active", saleDate: "2026-09-19", value: "2500,50", totalTimeSeconds: 90, internalStatus: "closed", insurancePlan: "Rede Unna (Odontoprev)", notes: "Venda própria" })).resolves.toEqual({ success: true });
-    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", totalTimeSeconds: 90, internalStatus: "closed", insurancePlan: "Rede Unna (Odontoprev)", notes: "Venda própria" }));
+    await expect(caller.valSales.create({ crcId: "VAL", patientName: "Paciente Teste", phone: "11999990000", patientType: "active", saleDate: "2026-09-19", value: "2500,50", totalTimeSeconds: 90, internalStatus: "closed", insurancePlan: "Rede Unna (Odontoprev)", treatment: "Implante", notes: "Venda própria" })).resolves.toEqual({ success: true });
+    expect(createValSale).toHaveBeenCalledWith(expect.objectContaining({ saleDate: "2026-09-19", value: "2500.50", totalTimeSeconds: 90, internalStatus: "closed", insurancePlan: "Rede Unna (Odontoprev)", treatment: "Implante", notes: "Venda própria" }));
   });
 
   it("rejects an insurance plan outside the Odontomab list", async () => {

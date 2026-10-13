@@ -25,7 +25,7 @@ export function calculateWeeklySpeed(records: TimedClosure[], targetSeconds = 12
     return {
       week,
       averageSeconds,
-      metGoal: averageSeconds !== null && averageSeconds < targetSeconds,
+      metGoal: averageSeconds !== null && averageSeconds <= targetSeconds,
       count: measured.length,
     };
   });

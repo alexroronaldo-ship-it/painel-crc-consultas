@@ -11,7 +11,7 @@ describe("weekly response speed", () => {
     expect(getWeekOfMonth("2026-09-30")).toBe(5);
   });
 
-  it("marks only weekly averages strictly below two minutes", () => {
+  it("marks weekly averages up to two minutes", () => {
     const weeks = calculateWeeklySpeed([
       { closingDate: "2026-09-01", totalTimeSeconds: 60 },
       { closingDate: "2026-09-07", totalTimeSeconds: 100 },
@@ -22,7 +22,7 @@ describe("weekly response speed", () => {
     ]);
 
     expect(weeks.map(week => week.averageSeconds)).toEqual([80, 119, 120, 90, 70]);
-    expect(weeks.map(week => week.metGoal)).toEqual([true, true, false, true, true]);
+    expect(weeks.map(week => week.metGoal)).toEqual([true, true, true, true, true]);
   });
 
   it("pays R$ 10 per completed week and R$ 60 with five-week excellence", () => {

@@ -13,7 +13,7 @@ import { appRouter } from "./routers";
 function context(role: "admin" | "user" = "admin"): TrpcContext {
   return { user: { id: 3, openId: "ortho-test", name: "Gerência", email: null, loginMethod: "manus", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
-const sale = { crcName: "JAYZA", patientName: "Paciente Exemplo", phone: "11999990000", contactChannel: "WhatsApp", reference: "Não se aplica", closingDate: "2026-10-07", closedItem: "Tratamento", value: "2500,00", totalTimeSeconds: 90, internalStatus: "closed" } as const;
+const sale = { crcName: "JAYZA", patientName: "Paciente Exemplo", phone: "11999990000", contactChannel: "WhatsApp", reference: "Não se aplica", closingDate: "2026-10-07", closedItem: "Tratamento", value: "2500,00", totalTimeSeconds: 90, internalStatus: "closed", internalNotes: "Registro completo", campaignId: 1 } as const;
 
 describe("API isolada de Pacientes Ativos Orto Implante", () => {
   beforeEach(() => vi.clearAllMocks());

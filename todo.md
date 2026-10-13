@@ -1,12 +1,11 @@
-# Transferir registros e retirar CRC
+# Atualização de qualidade da gestão e vendas
 
-- [x] Botão disponível em Odontomab, Funil de Vendas Orto Implante e Pacientes Ativos Orto Implante.
-- [x] Origem/destino explícitos, resumo de todos os meses com quantidade e valor, confirmação e senha provisória 0000; API restrita à gerência.
-- [x] Transferência atômica somente dentro da página escolhida, preservando IDs, pacientes, valores, datas, campanhas, convênios, fotos de pacientes e autoria anterior em auditoria.
-- [x] Comissão e progresso recalculados para a destinatária; faturamento da equipe preservado. Fotos profissionais, metas pessoais, tarefas e agenda não transferidas.
-- [x] Retirada reversível da origem, histórico consultável e reativação que não desfaz transferências; estados separados entre as duas páginas Orto Implante.
-- [x] Novos lançamentos e transferência serializados por bloqueios de perfil. Destino inexistente/retirado, resumo desatualizado e rollback cobertos por testes.
-- [x] Migração 0018 aplicada sem modificar registros existentes. 115 testes, tipagem, build e diff aprovados.
-- [x] Capturas autenticadas desktop/mobile e testes de diálogo/sucesso com respostas tRPC simuladas. Nenhuma transferência ou retirada real executada.
-
-Pronto para checkpoint final. As CRCs de origem permanecem no histórico, em vez de exclusão física, para preservar rastreabilidade dos pacientes e dados semanais.
+- [x] Comissão Marketing – Ortoimplante: cada CRC ativa tem painel individual com vendas, tarefas válidas e respostas em até dois minutos.
+- [x] Indicador de qualidade da gestão mensal consolidado no final da página, com pontuação de 0–100 calculada por vendas (50), tarefas válidas (15), respostas ≤2 min (15), agendamentos (10) e qualidade dos registros (10).
+- [x] O resumo mostra somente a pontuação consolidada e o valor total gerado; as categorias de pontos não ficam espalhadas no painel.
+- [x] Comissão de Vendas – Odontomab: tratamento bloqueado em Implante, Prótese, Orto e Clínica em geral; tabela e gráfico financeiro por tratamento adicionados.
+- [x] Gráfico financeiro por convênio mantido com receita em reais por convênio; registros históricos sem tratamento ficam preservados e são sinalizados para correção manual.
+- [x] Registros novos de Marketing, Comissão Clínica e Odontomab com todos os campos exibidos obrigatórios; campanha é obrigatória no Marketing e na Comissão Clínica.
+- [x] Regra de resposta rápida corrigida para incluir médias de até dois minutos.
+- [x] Migração 0021 aplicada, preservando todos os registros existentes, com a coluna opcional `treatment` em `val_sales`.
+- [x] Tipagem, 123 testes, build, diff e capturas desktop/mobile validados.

@@ -1,0 +1,1 @@
+ALTER TABLE `val_sales` ADD `treatment` varchar(40);

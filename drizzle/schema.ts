@@ -124,6 +124,7 @@ export const valSales = mysqlTable("val_sales", {
   value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   totalTimeSeconds: int("totalTimeSeconds").notNull().default(0),
   insurancePlan: varchar("insurancePlan", { length: 40 }),
+  treatment: varchar("treatment", { length: 40 }),
   notes: text("notes"),
   createdBy: int("createdBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

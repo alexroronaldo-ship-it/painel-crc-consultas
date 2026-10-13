@@ -10,15 +10,15 @@ import { odontomabRouter } from "./routers/odontomab";
 function ctx(role: "admin" | "user" = "admin"): TrpcContext {
   return { user: { id: 1, openId: "test", name: "Gerência", email: null, loginMethod: "manus", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
-const input = { crcId: "VAL", patientName: "Paciente exemplo", patientType: "active", saleDate: "2026-10-08", value: "2500,50", insurancePlan: "Rede Unna (Odontoprev)" } as const;
+const input = { crcId: "VAL", patientName: "Paciente exemplo", phone: "11999990000", patientType: "active", internalStatus: "closed", saleDate: "2026-10-08", value: "2500,50", totalTimeSeconds: 90, insurancePlan: "Rede Unna (Odontoprev)", treatment: "Implante", notes: "Registro de teste" } as const;
 const png = Buffer.from("89504e470d0a1a0a00000000", "hex").toString("base64");
 
 describe("Odontomab — pacientes ativos e novos", () => {
   beforeEach(() => vi.clearAllMocks());
-  it("registra nome, tipo e convênio e dispensa o tempo de atendimento", async () => {
+  it("registra todos os campos obrigatórios, incluindo tratamento e tempo de atendimento", async () => {
     const caller = odontomabRouter.createCaller(ctx());
     await expect(caller.create(input)).resolves.toEqual({ success: true });
-    expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", totalTimeSeconds: 0, createdBy: 1 }));
+    expect(mocks.createValSale).toHaveBeenCalledWith(expect.objectContaining({ patientName: "Paciente exemplo", patientType: "active", value: "2500.50", insurancePlan: "Rede Unna (Odontoprev)", treatment: "Implante", totalTimeSeconds: 90, createdBy: 1 }));
   });
   it("salva e corrige os três status e rejeita status inválido", async () => {
     const caller = odontomabRouter.createCaller(ctx());

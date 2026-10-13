@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ODONTOMAB_INSURANCE_PLANS } from "../../shared/odontomab";
+import { ODONTOMAB_INSURANCE_PLANS, ODONTOMAB_TREATMENTS } from "../../shared/odontomab";
 import { protectedProcedure, router } from "../_core/trpc";
 import { createValSale, deleteValSale, getValSale, listValSales, saveValPatientPhoto, updateValSale } from "../db";
 import { storagePut } from "../storage";
@@ -11,14 +11,15 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da venda").
 const patientInput = z.object({
   crcId: z.string().min(1, "Selecione a CRC").max(32),
   patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
-  phone: z.string().trim().max(40).optional(),
+  phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
   patientType: z.enum(["active", "new"], { error: "Selecione paciente Ativo ou Novo" }),
-  internalStatus: z.enum(["closed", "not_closed", "follow_up"]).optional(),
+  internalStatus: z.enum(["closed", "not_closed", "follow_up"], { error: "Selecione o status do paciente" }),
   saleDate: date,
   value: z.string().regex(/^\d{1,10}(,\d{1,2})?$/, "Informe um valor válido"),
-  totalTimeSeconds: z.number().int().min(0).max(86400).default(0),
+  totalTimeSeconds: z.number().int().min(0).max(86400),
   insurancePlan: z.enum(ODONTOMAB_INSURANCE_PLANS, { error: "Selecione um convênio da lista" }),
-  notes: z.string().trim().max(1000).optional(),
+  treatment: z.enum(ODONTOMAB_TREATMENTS, { error: "Selecione o tratamento" }),
+  notes: z.string().trim().min(2, "Informe uma observação").max(1000),
 });
 
 export const odontomabRouter = router({
@@ -29,14 +30,14 @@ export const odontomabRouter = router({
   }),
   create: protectedProcedure.input(patientInput).mutation(async ({ ctx, input }) => {
     await requireOdontomabCrc(input.crcId);
-    await createValSale({ ...input, phone: input.phone || null, value: input.value.replace(",", "."), createdBy: ctx.user.id });
+    await createValSale({ ...input, value: input.value.replace(",", "."), createdBy: ctx.user.id });
     return { success: true } as const;
   }),
   update: protectedProcedure.input(patientInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
     const { id, ...values } = input;
     const existing = await getValSale(id);
     await requireOdontomabCrc(values.crcId, existing.crcId === values.crcId);
-    await updateValSale(id, { ...values, phone: values.phone || null, notes: values.notes || null, value: values.value.replace(",", ".") });
+    await updateValSale(id, { ...values, value: values.value.replace(",", ".") });
     return { success: true } as const;
   }),
   deleteOne: protectedProcedure.input(z.object({ id: z.number().int().positive(), password: z.string() })).mutation(async ({ input }) => {

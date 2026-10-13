@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateOdontomabInsuranceMetrics, calculateOdontomabMetrics, displayOdontomabInsurance, ODONTOMAB_COMMISSION_RATE, selectOdontomabCrc } from "../shared/odontomab";
+import { calculateOdontomabInsuranceMetrics, calculateOdontomabMetrics, calculateOdontomabTreatmentMetrics, displayOdontomabInsurance, ODONTOMAB_COMMISSION_RATE, selectOdontomabCrc } from "../shared/odontomab";
 
 describe("Odontomab — métricas por tipo", () => {
   it("separa Ativo/Novo e preserva vendas antigas no total sem classificá-las", () => {
@@ -56,4 +56,19 @@ it("agrupa a receita fechada por convênio e preserva convênio sem informação
   expect(result.find(item => item.plan === "Rede Unna (Odontoprev)")).toEqual({ plan: "Rede Unna (Odontoprev)", count: 2, revenue: 8100 });
   expect(result.find(item => item.plan === "Unimed")).toEqual({ plan: "Unimed", count: 1, revenue: 3000 });
   expect(result.find(item => item.plan === "Não informado")).toEqual({ plan: "Não informado", count: 1, revenue: 500 });
+});
+
+it("mantém os quatro tratamentos controlados e soma somente receita fechada", () => {
+  const result = calculateOdontomabTreatmentMetrics([
+    { treatment: "Implante", value: "8100.00", internalStatus: "closed" },
+    { treatment: "Implante", value: "2000.00", internalStatus: "follow_up" },
+    { treatment: "Prótese", value: "3000.00", internalStatus: "closed" },
+    { treatment: "Orto", value: "1500.00", internalStatus: "not_closed" },
+  ]);
+  expect(result).toEqual([
+    { treatment: "Implante", count: 1, revenue: 8100 },
+    { treatment: "Prótese", count: 1, revenue: 3000 },
+    { treatment: "Orto", count: 0, revenue: 0 },
+    { treatment: "Clínica em geral", count: 0, revenue: 0 },
+  ]);
 });
