@@ -1,0 +1,49 @@
+name: painel-crc-migracao
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: painel_crc_migracao
+      MYSQL_USER: painel_crc
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Configure MYSQL_PASSWORD em .env.migration}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Configure MYSQL_ROOT_PASSWORD em .env.migration}
+      TZ: UTC
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # No database port is published to the host or internet.
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user=painel_crc --database=painel_crc_migracao --batch --skip-column-names --execute="SELECT 1" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    profiles: [app]
+    build:
+      context: .
+      args:
+        VITE_APP_ID: ${VITE_APP_ID:-}
+        VITE_OAUTH_PORTAL_URL: ${VITE_OAUTH_PORTAL_URL:-}
+        VITE_ANALYTICS_ENDPOINT: ${VITE_ANALYTICS_ENDPOINT:-}
+        VITE_ANALYTICS_WEBSITE_ID: ${VITE_ANALYTICS_WEBSITE_ID:-}
+    environment:
+      DATABASE_URL: mysql://painel_crc:${MYSQL_PASSWORD:?Configure uma senha hexadecimal}@mysql:3306/painel_crc_migracao
+      JWT_SECRET: ${JWT_SECRET:?Configure JWT_SECRET em .env.migration}
+      VITE_APP_ID: ${VITE_APP_ID:-}
+      OAUTH_SERVER_URL: ${OAUTH_SERVER_URL:-}
+      OWNER_OPEN_ID: ${OWNER_OPEN_ID:-}
+      BUILT_IN_FORGE_API_URL: ${BUILT_IN_FORGE_API_URL:-}
+      BUILT_IN_FORGE_API_KEY: ${BUILT_IN_FORGE_API_KEY:-}
+      PORT: "3000"
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
