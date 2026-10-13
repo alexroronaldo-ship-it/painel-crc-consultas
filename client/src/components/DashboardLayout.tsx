@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
-import { BarChart3, ClipboardCheck, HeartPulse, LogOut, Megaphone, PanelLeft } from "lucide-react";
+import { BarChart3, ClipboardCheck, HeartPulse, LogOut, Megaphone, PanelLeft, ShieldCheck } from "lucide-react";
 import { CSSProperties, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "./ui/button";
@@ -14,6 +14,7 @@ const nav = [
   { href: "/pacientes-ativos", label: "Comissão Clínica – Ortoimplant", icon: HeartPulse },
   { href: "/campanhas", label: "Campanhas", icon: Megaphone },
   { href: "/val", label: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)", icon: BarChart3 },
+  { href: "/gerente", label: "Painel da Gerente", icon: ShieldCheck },
 ] as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -6,11 +6,12 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Campaigns from "./pages/Campaigns";
 import Home from "./pages/Home";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import OrthoActive from "./pages/OrthoActive";
 import ValDashboard from "./pages/ValDashboard";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/pacientes-ativos" component={OrthoActive} /><Route path="/campanhas" component={Campaigns} /><Route path="/val" component={ValDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/pacientes-ativos" component={OrthoActive} /><Route path="/campanhas" component={Campaigns} /><Route path="/val" component={ValDashboard} /><Route path="/gerente" component={ManagerDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 export default function App() {

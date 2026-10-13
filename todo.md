@@ -9,4 +9,7 @@
 - [x] Regra de resposta rápida corrigida para incluir médias de até dois minutos.
 - [x] Migração 0021 aplicada, preservando todos os registros existentes, com a coluna opcional `treatment` em `val_sales`.
 - [x] **Operação exclusiva para pacientes fechados:** os três formulários fixam o status como Fechado; APIs rejeitam `Em acompanhamento` e `Não fechado`; listas, dashboards, gráficos, comissões, uso de campanhas e transferências consideram exclusivamente registros fechados. Registros históricos com outros status são preservados no banco, mas ficam fora dos resultados operacionais.
-- [x] Tipagem, 125 testes, build, diff e capturas desktop/mobile validados.
+- [x] Página **Painel da Gerente** protegida por autenticação administrativa e senha provisória `0000`, com bloqueio ao sair ou atualizar.
+- [x] Consulta gerencial mensal consolidando dados reais de Marketing, Clínica e Odontomab, com visão individual por CRC e sem misturar registros entre módulos.
+- [x] Gráfico e resumo de 0–100 pontos seguindo os prints: vendas (50), tarefas válidas (15), respostas até 2 minutos (15), agendamentos (10) e qualidade dos registros (10), incluindo pontos obtidos e faltantes.
+- [x] Tipagem, 21 suítes / 132 testes, build, diff e capturas desktop/mobile do acesso protegido validados.
