@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const mocks = vi.hoisted(() => ({ listPatientFollowUps: vi.fn().mockResolvedValue([]), createPatientFollowUp: vi.fn(), updatePatientFollowUp: vi.fn(), effectivePatientFollowUp: vi.fn() }));
+const mocks = vi.hoisted(() => ({ listPatientFollowUps: vi.fn().mockResolvedValue([]), createPatientFollowUp: vi.fn(), updatePatientFollowUp: vi.fn(), deletePatientFollowUp: vi.fn(), effectivePatientFollowUp: vi.fn() }));
 vi.mock("./patientFollowUpDb", () => mocks);
 import { appRouter } from "./routers";
 
@@ -34,5 +34,12 @@ describe("acompanhamento de pacientes", () => {
     const caller = appRouter.createCaller(context());
     await expect(caller.patientFollowUps.effectivate({ id: 7, commissionDestination: "clinic", commissionCrcId: "JAYZA", closingDate: "2026-10-13", closedItem: "Outro" as never, value: "12000,00" })).rejects.toThrow();
     expect(mocks.effectivePatientFollowUp).not.toHaveBeenCalled();
+  });
+  it("protege a exclusão individual do lead por senha", async () => {
+    const caller = appRouter.createCaller(context());
+    await expect(caller.patientFollowUps.deleteOne({ id: 7, password: "1234" })).rejects.toThrow("Senha provisória incorreta");
+    expect(mocks.deletePatientFollowUp).not.toHaveBeenCalled();
+    await expect(caller.patientFollowUps.deleteOne({ id: 7, password: "0000" })).resolves.toEqual({ success: true });
+    expect(mocks.deletePatientFollowUp).toHaveBeenCalledWith(7);
   });
 });

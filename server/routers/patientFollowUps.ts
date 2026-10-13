@@ -1,8 +1,9 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ODONTOMAB_INSURANCE_PLANS } from "../../shared/odontomab";
 import { ORTHO_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "../../shared/orthoReference";
 import { protectedProcedure, router } from "../_core/trpc";
-import { createPatientFollowUp, effectivePatientFollowUp, listPatientFollowUps, updatePatientFollowUp } from "../patientFollowUpDb";
+import { createPatientFollowUp, deletePatientFollowUp, effectivePatientFollowUp, listPatientFollowUps, updatePatientFollowUp } from "../patientFollowUpDb";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida").refine(value => !Number.isNaN(Date.parse(`${value}T12:00:00`)) && new Date(`${value}T12:00:00`).toISOString().slice(0, 10) === value, "Data inexistente");
 const optionalDate = date.optional();
@@ -33,6 +34,11 @@ export const patientFollowUpsRouter = router({
   update: protectedProcedure.input(base.safeExtend({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const { id, ...values } = input;
     await updatePatientFollowUp(id, { ...values, campaignId: values.hasCampaign ? values.campaignId : null, closingDate: values.closingDate ?? null, closedItem: values.closedItem ?? null, value: values.value?.replace(",", ".") ?? null }, ctx.user.id);
+    return { success: true } as const;
+  }),
+  deleteOne: protectedProcedure.input(z.object({ id: z.number().int().positive(), password: z.string() })).mutation(async ({ input }) => {
+    if (input.password !== "0000") throw new TRPCError({ code: "FORBIDDEN", message: "Senha provisória incorreta" });
+    await deletePatientFollowUp(input.id);
     return { success: true } as const;
   }),
   effectivate: protectedProcedure.input(z.object({

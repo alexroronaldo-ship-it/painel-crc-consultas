@@ -47,6 +47,14 @@ export async function updatePatientFollowUp(id: number, input: Pick<InsertPatien
   await db.update(patientFollowUps).set({ ...input, campaignId: input.hasCampaign ? input.campaignId : null, correctedBy, correctedAt: new Date() }).where(eq(patientFollowUps.id, id));
 }
 
+export async function deletePatientFollowUp(id: number) {
+  const db = await database();
+  const [current] = await db.select({ id: patientFollowUps.id, saleEffective: patientFollowUps.saleEffective }).from(patientFollowUps).where(eq(patientFollowUps.id, id)).limit(1);
+  if (!current) throw new Error("Lead não encontrado");
+  if (current.saleEffective) throw new Error("Venda efetivada não pode ser removida do acompanhamento");
+  await db.delete(patientFollowUps).where(eq(patientFollowUps.id, id));
+}
+
 export async function effectivePatientFollowUp(input: { id: number; commissionDestination: "clinic" | "marketing" | "odontomab"; commissionCrcId: string; closingDate: string; closedItem: string; value: string; odontomabPatientType?: "active" | "new"; insurancePlan?: string; effectiveBy: number }) {
   const db = await database();
   const [lead] = await db.select().from(patientFollowUps).where(eq(patientFollowUps.id, input.id)).limit(1);
