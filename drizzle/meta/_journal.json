@@ -176,6 +176,13 @@
       "when": 1791925376243,
       "tag": "0024_previous_exodus",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1791931705923,
+      "tag": "0025_repair_val_sales_reference",
+      "breakpoints": true
     }
   ]
 }
