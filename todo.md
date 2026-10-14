@@ -30,3 +30,4 @@
 - [x] Página **Total vendido por CRC** criada: consolida somente pacientes fechados das comissões Marketing, Clínica e Odontomab para cada CRC, inclusive CRCs sem vendas.
 - [x] Cada CRC possui meta individual fixa de R$ 75 mil, total vendido, percentual, valor faltante ou superávit, quantidade de vendas e páginas de origem; gráfico horizontal responsivo destaca a linha dourada da meta.
 - [x] Filtro opcional por mês e visão de todo o período; 23 suítes / 140 testes, tipagem, build, diff e visual desktop/mobile validados.
+- [x] Comissão Clínica: a referência Marketing foi substituída por Google no formulário, validação da API e gráfico de origem; o acompanhamento de pacientes mantém suas opções independentes. Não havia registro clínico histórico com Marketing para migrar.

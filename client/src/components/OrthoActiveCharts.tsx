@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateWeeklySales } from "@/lib/weekly-sales";
-import { ORTHO_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "@shared/orthoReference";
+import { CLINIC_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "@shared/orthoReference";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 type Sale = { closingDate: string; value: string | number; internalStatus: string };
@@ -15,7 +15,7 @@ export function ActiveWeeklyChart({ records, month, weeklyGoal, title }: { recor
 
 export function ActiveOriginDashboards({ records }: { records: DistributionSale[] }) {
   const closed = records.filter(record => record.internalStatus === "closed");
-  const referenceRows = ORTHO_REFERENCE_OPTIONS.map(reference => summarize(closed.filter(record => record.reference === reference), reference)).sort(sortByUsage);
+  const referenceRows = CLINIC_REFERENCE_OPTIONS.map(reference => summarize(closed.filter(record => record.reference === reference), reference)).sort(sortByUsage);
   const treatmentRows = ORTHO_TREATMENTS.map(treatment => summarize(closed.filter(record => record.closedItem === treatment), treatment)).sort(sortByUsage);
   const legacy = closed.filter(record => !ORTHO_TREATMENTS.includes(record.closedItem as typeof ORTHO_TREATMENTS[number]));
   return <section className="grid gap-5 xl:grid-cols-2"><DistributionCard title="De onde vieram os pacientes?" description="Referências mais usadas pelos pacientes internos no período selecionado." rows={referenceRows} tone="blue" empty="Nenhuma referência registrada neste período." metric="count" /><DistributionCard title="O que os pacientes fecharam?" description="Distribuição dos tratamentos fechados na Comissão Clínica." rows={treatmentRows} tone="green" empty="Nenhum tratamento registrado neste período." warning={legacy.length ? `${legacy.length} registro(s) histórico(s) sem tratamento padronizado foram preservados e não entram neste gráfico.` : undefined} metric="count" /></section>;

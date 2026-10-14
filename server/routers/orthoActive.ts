@@ -1,4 +1,4 @@
-import { ORTHO_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "../../shared/orthoReference";
+import { CLINIC_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "../../shared/orthoReference";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -30,7 +30,7 @@ export const orthoActiveRouter = router({
     create: protectedProcedure.input(z.object({
       crcName: crc, patientName: z.string().trim().min(2).max(160), phone: z.string().trim().min(8).max(40),
       contactChannel: z.enum(["WhatsApp", "Ligação", "Presencial", "Instagram"]),
-      reference: z.enum(ORTHO_REFERENCE_OPTIONS),
+      reference: z.enum(CLINIC_REFERENCE_OPTIONS),
       closingDate: date, closedItem: z.enum(ORTHO_TREATMENTS), value: money,
       totalTimeSeconds: z.number().int().min(0).max(86400).default(0),
       internalStatus: z.literal("closed", { error: "Somente pacientes fechados podem ser registrados" }), internalNotes: z.string().trim().min(2, "Informe uma observação interna").max(5000),
