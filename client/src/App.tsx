@@ -10,9 +10,10 @@ import ManagerDashboard from "./pages/ManagerDashboard";
 import OrthoActive from "./pages/OrthoActive";
 import PatientFollowUps from "./pages/PatientFollowUps";
 import ValDashboard from "./pages/ValDashboard";
+import SalesByCrc from "./pages/SalesByCrc";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/pacientes-ativos" component={OrthoActive} /><Route path="/campanhas" component={Campaigns} /><Route path="/val" component={ValDashboard} /><Route path="/acompanhamento" component={PatientFollowUps} /><Route path="/gerente" component={ManagerDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/pacientes-ativos" component={OrthoActive} /><Route path="/campanhas" component={Campaigns} /><Route path="/val" component={ValDashboard} /><Route path="/vendas-por-crc" component={SalesByCrc} /><Route path="/acompanhamento" component={PatientFollowUps} /><Route path="/gerente" component={ManagerDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 export default function App() {

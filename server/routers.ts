@@ -11,6 +11,7 @@ import { odontomabRouter } from "./routers/odontomab";
 import { crcTransfersRouter } from "./routers/crcTransfers";
 import { managerRouter } from "./routers/manager";
 import { patientFollowUpsRouter } from "./routers/patientFollowUps";
+import { salesByCrcRouter } from "./routers/salesByCrc";
 import { assertOrtoCrcActive } from "./crcTransferDb";
 import { recordManagerAudit } from "./managerAuditDb";
 
@@ -37,6 +38,7 @@ export const appRouter = router({
   crcTransfers: crcTransfersRouter,
   manager: managerRouter,
   patientFollowUps: patientFollowUpsRouter,
+  salesByCrc: salesByCrcRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

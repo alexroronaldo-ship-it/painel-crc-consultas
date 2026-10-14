@@ -27,3 +27,6 @@
 - [x] Painel da Gerente: histórico mensal protegido registra inscrições, correções, efetivações e exclusões com data/hora, módulo, paciente, CRC, resumo e usuário responsável.
 - [x] Migração 0024 criou o histórico de auditoria; registros atuais foram inseridos como inscrições preservando data e usuário de criação. Exclusões anteriores à implantação não foram inventadas; novas ações passam a ser auditadas automaticamente.
 - [x] Tipagem, 22 suítes / 138 testes, build, diff e visual desktop validados.
+- [x] Página **Total vendido por CRC** criada: consolida somente pacientes fechados das comissões Marketing, Clínica e Odontomab para cada CRC, inclusive CRCs sem vendas.
+- [x] Cada CRC possui meta individual fixa de R$ 75 mil, total vendido, percentual, valor faltante ou superávit, quantidade de vendas e páginas de origem; gráfico horizontal responsivo destaca a linha dourada da meta.
+- [x] Filtro opcional por mês e visão de todo o período; 23 suítes / 140 testes, tipagem, build, diff e visual desktop/mobile validados.
