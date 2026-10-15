@@ -3,102 +3,66 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { BarChart3, CalendarDays, CircleDollarSign, Target, Trophy } from "lucide-react";
+import { BarChart3, CalendarDays, CircleDollarSign, HandCoins, Target, Trophy } from "lucide-react";
 import { useState } from "react";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const compactMoney = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-const moduleLabels: Record<string, string> = {
-  marketing: "Marketing",
-  clinic: "Clínica",
-  odontomab: "Odontomab",
-};
-const colors = ["#2e6fa8", "#58a96b", "#b4a92f", "#8c6bb1", "#d46d91", "#4ca9a4"];
-const formatPercent = (value: number) => `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+const compactMoney = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+const percent = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+const channelKeys = ["marketing", "clinic", "odontomab"] as const;
+type ChannelKey = (typeof channelKeys)[number];
+const channelLabels: Record<ChannelKey, string> = { marketing: "Comissão Marketing", clinic: "Comissão Clínica", odontomab: "Comissão de Vendas Pacientes" };
+const channelColors: Record<ChannelKey, string> = { marketing: "#2e6fa8", clinic: "#58a96b", odontomab: "#b4a92f" };
+const formatPercent = (value: number) => `${percent.format(value)}%`;
 
-type CrcSalesRow = {
-  id: string;
-  name: string;
-  totalSold: number;
-  goal: number;
-  percentOfGoal: number;
-  remaining: number;
-  surplus: number;
-  saleCount: number;
-  modules: string[];
-};
+type SourceBreakdown = { label: string; totalSold: number; saleCount: number };
+type ChannelSummary = { key: ChannelKey; label: string; totalSold: number; goal: number; percentOfGoal: number; remaining: number; surplus: number; saleCount: number; commissionRate: number; commission: number; sources: SourceBreakdown[] };
+type CrcSalesRow = { id: string; name: string; totalSold: number; goal: number; percentOfGoal: number; remaining: number; surplus: number; saleCount: number; totalCommission: number; channels: Record<ChannelKey, ChannelSummary>; sources: SourceBreakdown[] };
+type ChannelTotal = { totalSold: number; totalCommission: number; saleCount: number; goal: number };
+type SalesData = { goal: number; combinedGoal: number; rows: CrcSalesRow[]; totalSold: number; totalCommission: number; totalCrcs: number; totalSalesByChannel: Record<ChannelKey, ChannelTotal> };
 
 export default function SalesByCrc() {
   const [month, setMonth] = useState<string | undefined>();
   const query = trpc.salesByCrc.summary.useQuery(month ? { month } : undefined);
-  const data = query.data;
-  const periodLabel = month
-    ? new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(`${month}-01T12:00:00`))
-    : "todo o período";
-  const chartMax = data ? Math.max(data.goal, ...data.rows.map(row => row.totalSold), 1) * 1.12 : 75_000;
-  const totalGoal = data ? data.goal * data.totalCrcs : 0;
+  const data = query.data as SalesData | undefined;
+  const periodLabel = month ? new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(`${month}-01T12:00:00`)) : "todo o período";
+  const chartMax = data ? Math.max(...data.rows.map(row => Math.max(row.totalSold, row.goal)), 1) * 1.12 : 75_000;
 
   return <DashboardLayout><div className="min-h-screen bg-[#f3f8fb] px-4 py-6 sm:px-8 sm:py-8"><div className="mx-auto max-w-7xl space-y-6">
-    <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-      <div>
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#e5f1f6] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#2e718f]"><BarChart3 className="h-4 w-4" />Visão financeira da equipe</div>
-        <h1 className="text-3xl font-semibold tracking-tight text-[#174f6f]">Total vendido por CRC</h1>
-        <p className="mt-1 max-w-2xl text-sm text-[#6e7f88]">Consolidado dos pacientes fechados nas páginas Marketing, Clínica e Odontomab, com meta individual de R$ 75 mil.</p>
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <div>
-          <label htmlFor="sales-crc-period" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6e7f88]">Período opcional</label>
-          <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#b4a92f]" /><Input id="sales-crc-period" type="month" value={month ?? ""} onChange={event => setMonth(event.target.value || undefined)} className="h-9 w-44 border-[#d7e5ec] bg-white" /></div>
-        </div>
-        <Button type="button" variant="outline" onClick={() => setMonth(undefined)} className={`h-9 border-[#d7e5ec] bg-white ${!month ? "text-[#2e7da3]" : "text-[#486a7b]"}`}>Todo período</Button>
-      </div>
-    </header>
+    <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#e5f1f6] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#2e718f]"><BarChart3 className="h-4 w-4" />Visão financeira da equipe</div><h1 className="text-3xl font-semibold tracking-tight text-[#174f6f]">Total vendido por CRC</h1><p className="mt-1 max-w-3xl text-sm text-[#6e7f88]">Detalhamento das vendas fechadas por CRC, separado entre Comissão Marketing, Comissão Clínica e Comissão de Vendas Pacientes. Campanha orgânica da Comissão Clínica entra somente no canal Marketing.</p></div><div className="flex flex-col gap-2 sm:flex-row sm:items-end"><div><label htmlFor="sales-crc-period" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#6e7f88]">Período opcional</label><div className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#b4a92f]" /><Input id="sales-crc-period" type="month" value={month ?? ""} onChange={event => setMonth(event.target.value || undefined)} className="h-9 w-44 border-[#d7e5ec] bg-white" /></div></div><Button type="button" variant="outline" onClick={() => setMonth(undefined)} className={`h-9 border-[#d7e5ec] bg-white ${!month ? "text-[#2e7da3]" : "text-[#486a7b]"}`}>Todo período</Button></div></header>
 
     {query.isLoading && <Card className="border-[#d8e5eb] bg-white"><CardContent className="p-8 text-center text-sm text-[#617782]">Carregando totais de vendas…</CardContent></Card>}
     {query.error && <Card className="border-red-200 bg-red-50"><CardContent className="p-5 text-sm text-red-800">Não foi possível carregar o consolidado: {query.error.message}</CardContent></Card>}
-    {data && <>
-      <div className="flex items-center gap-2 rounded-xl border border-[#dce8ed] bg-white px-4 py-3 text-sm text-[#486a7b]"><CalendarDays className="h-4 w-4 text-[#2e7da3]" />Apuração de <strong className="capitalize text-[#174f6f]">{periodLabel}</strong><span className="text-xs text-[#8b989d]">· apenas pacientes fechados</span></div>
-      <section className="grid gap-4 sm:grid-cols-3">
-        <SummaryCard label="Total vendido no painel" value={money.format(data.totalSold)} detail={`${data.rows.reduce((sum, row) => sum + row.saleCount, 0)} vendas fechadas`} tone="blue" icon={<CircleDollarSign className="h-5 w-5" />} />
-        <SummaryCard label="Meta total da equipe" value={money.format(totalGoal)} detail={`${data.totalCrcs} CRCs · R$ 75 mil por CRC`} tone="yellow" icon={<Target className="h-5 w-5" />} />
-        <SummaryCard label="Maior venda acumulada" value={money.format(data.rows[0]?.totalSold ?? 0)} detail={data.rows[0] ? `${data.rows[0].name} · ${formatPercent(data.rows[0].percentOfGoal)} da meta` : "Nenhuma venda registrada"} tone="green" icon={<Trophy className="h-5 w-5" />} />
-      </section>
-      <SalesComparisonChart rows={data.rows} goal={data.goal} chartMax={chartMax} />
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{data.rows.map((row, index) => <CrcCard key={row.id} row={row} color={colors[index % colors.length]} />)}</section>
+    {data && <><div className="flex items-center gap-2 rounded-xl border border-[#dce8ed] bg-white px-4 py-3 text-sm text-[#486a7b]"><CalendarDays className="h-4 w-4 text-[#2e7da3]" />Apuração de <strong className="capitalize text-[#174f6f]">{periodLabel}</strong><span className="text-xs text-[#8b989d]">· apenas pacientes fechados</span></div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><SummaryCard label="Total vendido no painel" value={money.format(data.totalSold)} detail={`${data.rows.reduce((sum, row) => sum + row.saleCount, 0)} vendas fechadas nos três canais`} tone="blue" icon={<CircleDollarSign className="h-5 w-5" />} /><SummaryCard label="Comissão total estimada" value={money.format(data.totalCommission)} detail="Soma das três comissões por CRC" tone="green" icon={<HandCoins className="h-5 w-5" />} /><SummaryCard label="Meta combinada" value={money.format(data.combinedGoal)} detail={`${data.totalCrcs} CRCs · três metas de canal por CRC`} tone="yellow" icon={<Target className="h-5 w-5" />} /><SummaryCard label="Maior total acumulado" value={money.format(data.rows[0]?.totalSold ?? 0)} detail={data.rows[0] ? `${data.rows[0].name} · ${formatPercent(data.rows[0].percentOfGoal)} da meta combinada` : "Nenhuma venda registrada"} tone="blue" icon={<Trophy className="h-5 w-5" />} /></section>
+      <ChannelOverview totals={data.totalSalesByChannel} />
+      <SalesComparisonChart rows={data.rows} chartMax={chartMax} />
+      <CommissionComparisonChart rows={data.rows} />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{data.rows.map((row, index) => <CrcCard key={row.id} row={row} color={["#2e6fa8", "#58a96b", "#b4a92f", "#8c6bb1", "#d46d91", "#4ca9a4"][index % 6]} />)}</section>
     </>}
   </div></div></DashboardLayout>;
 }
 
-function SalesComparisonChart({ rows, goal, chartMax }: { rows: CrcSalesRow[]; goal: number; chartMax: number }) {
-  const goalPosition = Math.min(100, goal / chartMax * 100);
-  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="text-lg text-[#174f6f]">Vendas por CRC</CardTitle><p className="mt-1 text-xs text-[#8b989d]">Valor vendido acumulado em cada CRC. A linha dourada marca a meta individual de R$ 75 mil.</p></div><span className="rounded-full bg-[#fff8e5] px-3 py-1.5 text-xs font-bold text-[#8b6720]">Meta: {money.format(goal)}</span></div></CardHeader><CardContent className="space-y-5 p-5">
-    <div className="relative ml-[5.75rem] h-6 border-b border-[#e1eaee] text-[10px] text-[#8b989d] sm:ml-28">
-      <span className="absolute left-0 top-0">R$ 0</span>
-      <span className="absolute top-0 -translate-x-1/2" style={{ left: `${goalPosition}%` }}>R$ 75 mil</span>
-      <span className="absolute right-0 top-0">{compactMoney.format(chartMax)}</span>
-      <span aria-hidden="true" className="absolute bottom-0 top-0 border-l-2 border-dashed border-[#b4a92f]" style={{ left: `${goalPosition}%` }} />
-    </div>
-    <div className="space-y-5">{rows.map((row, index) => <SalesBar key={row.id} row={row} color={colors[index % colors.length]} goalPosition={goalPosition} chartMax={chartMax} />)}</div>
-    <div className="ml-[5.75rem] flex items-center gap-2 text-xs text-[#8b6720] sm:ml-28"><span className="h-4 border-l-2 border-dashed border-[#b4a92f]" />Linha de meta individual: {money.format(goal)}</div>
-  </CardContent></Card>;
+function ChannelOverview({ totals }: { totals: Record<ChannelKey, ChannelTotal> }) {
+  const maximum = Math.max(...channelKeys.map(key => Math.max(totals[key].totalSold, totals[key].goal)), 1);
+  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-lg text-[#174f6f]">Vendas e comissão por canal</CardTitle><p className="text-xs text-[#8b989d]">Este quadro explica quanto do total veio de cada página e quanto de comissão é projetado para esse canal.</p></CardHeader><CardContent className="grid gap-4 lg:grid-cols-3">{channelKeys.map(key => { const item = totals[key]; return <div key={key} className="rounded-xl border border-[#dce8ed] bg-[#fbfdfe] p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold text-[#174f6f]">{channelLabels[key]}</p><p className="mt-1 text-xs text-[#7d8d95]">{item.saleCount} venda{item.saleCount === 1 ? "" : "s"} · meta {money.format(item.goal)}</p></div><span className="h-3 w-3 rounded-full" style={{ backgroundColor: channelColors[key] }} /></div><div className="mt-4 h-3 overflow-hidden rounded-full bg-[#e7eff3]"><div className="h-full rounded-full" style={{ width: `${Math.min(100, item.totalSold / maximum * 100)}%`, backgroundColor: channelColors[key] }} /></div><div className="mt-3 flex items-end justify-between gap-3"><div><p className="text-[11px] text-[#8b989d]">Vendas fechadas</p><p className="text-xl font-semibold text-[#174f6f]">{money.format(item.totalSold)}</p></div><div className="text-right"><p className="text-[11px] text-[#8b989d]">Comissão</p><p className="text-lg font-bold text-[#2e718f]">{money.format(item.totalCommission)}</p></div></div></div>; })}</CardContent></Card>;
 }
 
-function SalesBar({ row, color, goalPosition, chartMax }: { row: CrcSalesRow; color: string; goalPosition: number; chartMax: number }) {
-  const width = Math.min(100, row.totalSold / chartMax * 100);
-  return <div className="grid grid-cols-[5.25rem_minmax(0,1fr)] gap-2 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4">
-    <div className="flex flex-col justify-center"><p className="truncate text-sm font-semibold text-[#486a7b]">{row.name}</p><p className="text-[10px] text-[#8b989d]">{formatPercent(row.percentOfGoal)} da meta</p></div>
-    <div className="relative pt-1"><div className="relative h-8 overflow-hidden rounded-r-lg bg-[#edf3f5]"><div role="img" aria-label={`${row.name}: ${money.format(row.totalSold)} vendidos`} className="h-full min-w-1 rounded-r-lg transition-[width] duration-300" style={{ width: `${width}%`, backgroundColor: color }} /></div><p className="mt-1 text-xs font-bold text-[#174f6f]">{money.format(row.totalSold)}</p><span aria-hidden="true" className="pointer-events-none absolute -top-1 bottom-0 border-l-2 border-dashed border-[#b4a92f]" style={{ left: `${goalPosition}%` }} /></div>
-  </div>;
+function SalesComparisonChart({ rows, chartMax }: { rows: CrcSalesRow[]; chartMax: number }) {
+  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><CardTitle className="text-lg text-[#174f6f]">Total vendido por CRC · origem do valor</CardTitle><p className="mt-1 text-xs text-[#8b989d]">Cada barra é dividida pelos três canais. A linha dourada marca a soma das metas individuais da CRC.</p></div><div className="flex flex-wrap gap-3 text-[11px] text-[#617782]">{channelKeys.map(key => <span key={key} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: channelColors[key] }} />{channelLabels[key]}</span>)}</div></div></CardHeader><CardContent className="space-y-5 p-5"><div className="relative ml-[5.75rem] h-6 border-b border-[#e1eaee] text-[10px] text-[#8b989d] sm:ml-28"><span className="absolute left-0 top-0">R$ 0</span><span className="absolute right-0 top-0">{compactMoney.format(chartMax)}</span></div><div className="space-y-6">{rows.map(row => <div key={row.id} className="grid grid-cols-[5.25rem_minmax(0,1fr)] gap-2 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-4"><div className="flex flex-col justify-center"><p className="truncate text-sm font-semibold text-[#486a7b]">{row.name}</p><p className="text-[10px] text-[#8b989d]">{money.format(row.totalSold)} total</p></div><div className="relative pt-1"><div className="relative flex h-9 overflow-hidden rounded-r-lg bg-[#edf3f5]">{channelKeys.map(key => { const channel = row.channels[key]; return <div key={key} role="img" aria-label={`${row.name}, ${channel.label}: ${money.format(channel.totalSold)} em ${channel.saleCount} vendas`} title={`${channel.label}: ${money.format(channel.totalSold)}`} className="h-full min-w-0 transition-[width] duration-300" style={{ width: `${Math.min(100, channel.totalSold / chartMax * 100)}%`, backgroundColor: channelColors[key] }} />; })}<span aria-hidden="true" className="pointer-events-none absolute bottom-0 top-0 border-l-2 border-dashed border-[#b4a92f]" style={{ left: `${Math.min(100, row.goal / chartMax * 100)}%` }} /></div><div className="mt-1 flex flex-wrap justify-between gap-x-3 text-xs"><span className="font-bold text-[#174f6f]">{formatPercent(row.percentOfGoal)} da meta</span><span className={row.surplus ? "font-semibold text-[#3f8750]" : "text-[#8b6720]"}>{row.surplus ? `Superávit ${money.format(row.surplus)}` : `Faltam ${money.format(row.remaining)}`}</span></div></div></div>)}</div><p className="ml-[5.75rem] text-xs text-[#8b6720] sm:ml-28"><span className="mr-2 inline-block h-4 border-l-2 border-dashed border-[#b4a92f] align-middle" />Meta combinada da CRC: soma das metas Marketing, Clínica e Vendas Pacientes.</p></CardContent></Card>;
+}
+
+function CommissionComparisonChart({ rows }: { rows: CrcSalesRow[] }) {
+  const maximum = Math.max(...rows.map(row => row.totalCommission), 1);
+  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><CardTitle className="text-lg text-[#174f6f]">Comissão estimada por CRC e canal</CardTitle><p className="mt-1 text-xs text-[#8b989d]">Mostra o valor que cada CRC recebe separadamente por tipo de venda e o total final.</p></div><div className="flex flex-wrap gap-3 text-[11px] text-[#617782]">{channelKeys.map(key => <span key={key} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: channelColors[key] }} />{channelLabels[key]}</span>)}</div></div></CardHeader><CardContent className="space-y-5 p-5">{rows.map(row => <div key={row.id} className="grid gap-3 sm:grid-cols-[7rem_minmax(0,1fr)_8rem] sm:items-center"><div><p className="text-sm font-semibold text-[#486a7b]">{row.name}</p><p className="text-[10px] text-[#8b989d]">{row.saleCount} vendas</p></div><div className="relative flex h-8 overflow-hidden rounded-r-lg bg-[#edf3f5]">{channelKeys.map(key => { const channel = row.channels[key]; return <div key={key} role="img" aria-label={`${row.name}, ${channel.label}: comissão ${money.format(channel.commission)}`} title={`${channel.label}: ${money.format(channel.commission)}`} style={{ width: `${Math.min(100, channel.commission / maximum * 100)}%`, backgroundColor: channelColors[key] }} />; })}</div><div className="text-left sm:text-right"><p className="text-sm font-bold text-[#174f6f]">{money.format(row.totalCommission)}</p><p className="text-[10px] text-[#8b989d]">total de comissão</p></div></div>)}{!rows.length && <p className="text-center text-sm text-[#7d8d95]">Nenhuma CRC encontrada.</p>}</CardContent></Card>;
 }
 
 function CrcCard({ row, color }: { row: CrcSalesRow; color: string }) {
-  const progress = Math.min(100, row.percentOfGoal);
-  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-[#6e7f88]">CRC</p><h2 className="mt-1 text-xl font-semibold text-[#174f6f]">{row.name}</h2></div><span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} /></div><div className="mt-5 flex items-end justify-between gap-3"><div><p className="text-xs text-[#8b989d]">Total vendido</p><p className="mt-1 text-2xl font-semibold text-[#174f6f]">{money.format(row.totalSold)}</p></div><div className="text-right"><p className="text-xs text-[#8b989d]">Meta</p><p className="font-semibold text-[#486a7b]">{money.format(row.goal)}</p></div></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e7eef1]"><div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${progress}%`, backgroundColor: color }} /></div><div className="mt-2 flex justify-between text-xs"><span className="font-semibold text-[#486a7b]">{formatPercent(row.percentOfGoal)}</span><span className={row.surplus ? "font-semibold text-[#3f8750]" : "text-[#8b6720]"}>{row.surplus ? `Superávit ${money.format(row.surplus)}` : row.remaining ? `Faltam ${money.format(row.remaining)}` : "Meta atingida"}</span></div><div className="mt-4 flex flex-wrap items-center gap-1.5 text-[11px] text-[#7d8d95]"><span>{row.saleCount} venda{row.saleCount === 1 ? "" : "s"}</span>{row.modules.length > 0 && <><span>·</span>{row.modules.map(module => <span key={module} className="rounded-full bg-[#f2f7f9] px-2 py-0.5">{moduleLabels[module] ?? module}</span>)}</>}</div></CardContent></Card>;
+  return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-[#6e7f88]">CRC</p><h2 className="mt-1 text-xl font-semibold text-[#174f6f]">{row.name}</h2></div><span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} /></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><div><p className="text-xs text-[#8b989d]">Total vendido</p><p className="mt-1 text-2xl font-semibold text-[#174f6f]">{money.format(row.totalSold)}</p></div><div className="text-left sm:text-right"><p className="text-xs text-[#8b989d]">Comissão total</p><p className="mt-1 text-xl font-bold text-[#2e718f]">{money.format(row.totalCommission)}</p></div></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e7eef1]"><div className="h-full rounded-full" style={{ width: `${Math.min(100, row.percentOfGoal)}%`, backgroundColor: color }} /></div><div className="mt-2 flex justify-between text-xs"><span className="font-semibold text-[#486a7b]">{formatPercent(row.percentOfGoal)} da meta combinada</span><span className={row.surplus ? "font-semibold text-[#3f8750]" : "text-[#8b6720]"}>{row.surplus ? `+${money.format(row.surplus)}` : `Faltam ${money.format(row.remaining)}`}</span></div><div className="mt-5 space-y-3">{channelKeys.map(key => <ChannelLine key={key} channel={row.channels[key]} />)}</div></CardContent></Card>;
+}
+
+function ChannelLine({ channel }: { channel: ChannelSummary }) {
+  return <div className="rounded-lg border border-[#e1eaee] bg-[#fbfdfe] p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-[#486a7b]">{channel.label}</p><p className="mt-1 text-sm font-bold text-[#174f6f]">{money.format(channel.totalSold)}</p></div><div className="text-right"><p className="text-[10px] text-[#8b989d]">Comissão · {formatPercent(channel.commissionRate * 100)}</p><p className="text-sm font-bold text-[#2e718f]">{money.format(channel.commission)}</p></div></div><p className="mt-2 text-[10px] text-[#7d8d95]">Meta: {money.format(channel.goal)} · {channel.saleCount} venda{channel.saleCount === 1 ? "" : "s"}</p>{channel.sources.length > 0 ? <div className="mt-2 space-y-1 border-t border-[#e8eff2] pt-2">{channel.sources.map(source => <p key={source.label} className="flex justify-between gap-2 text-[10px] text-[#617782]"><span className="truncate">{source.label}</span><span className="whitespace-nowrap font-semibold">{money.format(source.totalSold)}</span></p>)}</div> : <p className="mt-2 border-t border-[#e8eff2] pt-2 text-[10px] text-[#a0adb2]">Nenhuma venda neste canal.</p>}</div>;
 }
 
 function SummaryCard({ label, value, detail, tone, icon }: { label: string; value: string; detail: string; tone: "blue" | "green" | "yellow"; icon: React.ReactNode }) {

@@ -1,24 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateWeeklySales } from "@/lib/weekly-sales";
-import { CLINIC_REFERENCE_OPTIONS, ORTHO_TREATMENTS } from "@shared/orthoReference";
+import { CLINIC_REFERENCE_OPTIONS, ORTHO_TREATMENTS, isClinicOrganicReference } from "@shared/orthoReference";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-type Sale = { closingDate: string; value: string | number; internalStatus: string };
+type Sale = { closingDate: string; value: string | number; internalStatus: string; reference?: string | null };
 type DistributionSale = Sale & { reference?: string | null; closedItem?: string | null };
 
 export function ActiveWeeklyChart({ records, month, weeklyGoal, title }: { records: Sale[]; month: string; weeklyGoal?: number | null; title: string }) {
   if (!month) return <Card className="border-[#d8e5eb] bg-white"><CardContent className="p-5 text-sm text-[#617782]">Selecione um mês para acompanhar as cinco semanas.</CardContent></Card>;
-  const weeks = calculateWeeklySales(records.filter(record => record.internalStatus === "closed"), month);
+  const weeks = calculateWeeklySales(records.filter(record => record.internalStatus === "closed" && !isClinicOrganicReference(record.reference)), month);
   const maximum = Math.max(...weeks.map(week => week.total), weeklyGoal ?? 0, 1);
   return <Card className="border-[#d8e5eb] bg-white shadow-sm"><CardHeader><CardTitle className="text-lg text-[#174f6f]">{title}</CardTitle><p className="text-xs text-[#6e7f88]">S1–S5 · somente fechamentos deste módulo. {weeklyGoal ? `Meta semanal: ${money.format(weeklyGoal)}.` : "Meta semanal ainda não definida."}</p></CardHeader><CardContent><div className="grid grid-cols-2 gap-3 sm:grid-cols-5">{weeks.map(week => { const progress = weeklyGoal ? Math.min(100, week.total / weeklyGoal * 100) : 0; return <div key={week.week} className="min-w-0 rounded-xl border border-[#dce8ed] bg-[#f7fafb] p-3"><div className="text-center text-xs font-semibold text-[#174f6f]">{week.label} <span className="font-normal text-[#7d8d95]">{week.period}</span></div><div className="mt-2 flex h-24 items-end overflow-hidden rounded-lg bg-[#e4eef2]"><div className="w-full rounded-t-md bg-[#2e7da3]" style={{ height: `${week.total > 0 ? Math.max(5, week.total / maximum * 100) : 0}%` }} /></div><p className="mt-2 text-center text-sm font-bold text-[#174f6f]">{money.format(week.total)}</p><p className="text-center text-[11px] text-[#7d8d95]">{week.count} venda{week.count === 1 ? "" : "s"}</p>{weeklyGoal ? <p className={`mt-2 rounded-md p-1 text-center text-[11px] font-semibold ${week.total >= weeklyGoal ? "bg-[#e9f7eb] text-[#2f7b40]" : "bg-[#fff7df] text-[#9a6b12]"}`}>{week.total >= weeklyGoal ? `+${money.format(week.total - weeklyGoal)}` : `Faltam ${money.format(weeklyGoal - week.total)}`}</p> : <p className="mt-2 text-center text-[11px] text-[#8b989d]">Sem meta</p>}{weeklyGoal ? <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#d8e5eb]"><div className="h-full bg-[#cbb548]" style={{ width: `${progress}%` }} /></div> : null}</div>; })}</div></CardContent></Card>;
 }
 
 export function ActiveOriginDashboards({ records }: { records: DistributionSale[] }) {
   const closed = records.filter(record => record.internalStatus === "closed");
-  const referenceRows = CLINIC_REFERENCE_OPTIONS.map(reference => summarize(closed.filter(record => record.reference === reference), reference)).sort(sortByUsage);
-  const treatmentRows = ORTHO_TREATMENTS.map(treatment => summarize(closed.filter(record => record.closedItem === treatment), treatment)).sort(sortByUsage);
-  const legacy = closed.filter(record => !ORTHO_TREATMENTS.includes(record.closedItem as typeof ORTHO_TREATMENTS[number]));
-  return <section className="grid gap-5 xl:grid-cols-2"><DistributionCard title="De onde vieram os pacientes?" description="Referências mais usadas pelos pacientes internos no período selecionado." rows={referenceRows} tone="blue" empty="Nenhuma referência registrada neste período." metric="count" /><DistributionCard title="O que os pacientes fecharam?" description="Distribuição dos tratamentos fechados na Comissão Clínica." rows={treatmentRows} tone="green" empty="Nenhum tratamento registrado neste período." warning={legacy.length ? `${legacy.length} registro(s) histórico(s) sem tratamento padronizado foram preservados e não entram neste gráfico.` : undefined} metric="count" /></section>;
+  const clinicClosed = closed.filter(record => !isClinicOrganicReference(record.reference));
+  const referenceRows = CLINIC_REFERENCE_OPTIONS.map(reference => summarize(closed.filter(record => record.reference === reference || (reference === "Campanha orgânica" && record.reference === "Google")), reference)).sort(sortByUsage);
+  const treatmentRows = ORTHO_TREATMENTS.map(treatment => summarize(clinicClosed.filter(record => record.closedItem === treatment), treatment)).sort(sortByUsage);
+  const legacy = clinicClosed.filter(record => !ORTHO_TREATMENTS.includes(record.closedItem as typeof ORTHO_TREATMENTS[number]));
+  return <section className="grid gap-5 xl:grid-cols-2"><DistributionCard title="De onde vieram os pacientes?" description="Referências mais usadas pelos pacientes internos; Campanha orgânica é direcionada à Comissão Marketing." rows={referenceRows} tone="blue" empty="Nenhuma referência registrada neste período." metric="count" /><DistributionCard title="O que os pacientes fecharam?" description="Distribuição dos tratamentos fechados na Comissão Clínica." rows={treatmentRows} tone="green" empty="Nenhum tratamento registrado neste período." warning={legacy.length ? `${legacy.length} registro(s) histórico(s) sem tratamento padronizado foram preservados e não entram neste gráfico.` : undefined} metric="count" /></section>;
 }
 
 function summarize(records: DistributionSale[], label: string) { return { label, count: records.length, revenue: records.reduce((sum, record) => sum + Number(record.value), 0) }; }

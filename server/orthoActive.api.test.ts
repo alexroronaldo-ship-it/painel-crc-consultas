@@ -42,9 +42,9 @@ describe("API isolada de Pacientes Ativos Orto Implante", () => {
     await expect(caller.orthoActive.patients.create({ ...sale, reference: "" } as never)).rejects.toThrow();
     expect(mocks.createActivePatient).not.toHaveBeenCalled();
   });
-  it("aceita as quatro referências clínicas, incluindo Google, e rejeita Marketing", async () => {
+  it("aceita as quatro referências clínicas, incluindo Campanha orgânica, e rejeita Marketing", async () => {
     const caller = appRouter.createCaller(context());
-    for (const reference of ["Dentista", "Paciente", "Google", "Não se aplica"] as const) {
+    for (const reference of ["Dentista", "Paciente", "Campanha orgânica", "Não se aplica"] as const) {
       await caller.orthoActive.patients.create({ ...sale, reference });
       expect(mocks.createActivePatient).toHaveBeenLastCalledWith(expect.objectContaining({ reference }));
     }

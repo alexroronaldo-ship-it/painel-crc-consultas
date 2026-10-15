@@ -12,7 +12,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-type RecordRow = { crcName: string; closingDate: string; value: string; totalTimeSeconds: number; internalStatus: string; campaignId: number | null };
+type RecordRow = { crcName: string; closingDate: string; value: string; totalTimeSeconds: number; internalStatus: string; campaignId: number | null; reference?: string | null };
 type GoalRow = { crcName: string; monthlyGoal: string | null; weeklySalesGoal: string | null; timeGoalSeconds: number | null };
 type WeekRow = { crcName: string; week: number; taskCount: number; taskGoal: number | null; description: string | null; appointmentCount: number; appointmentGoal: number | null };
 const weeks = [1, 2, 3, 4, 5] as const;
@@ -80,7 +80,7 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
         <Stat label="Pacientes registrados" value={String(metrics.count)} detail="Somente Wisllayny e JAYZA" />
       </div>
       <Card className="border-[#cddfe8] bg-white shadow-sm"><CardHeader><div className="flex items-center justify-between gap-2"><CardTitle className="flex items-center gap-2 text-base text-[#174f6f]"><Target className="h-4 w-4 text-[#b4a92f]" />Metas de {label}</CardTitle>{isAdmin && !readOnly && <Button type="button" variant="outline" size="sm" onClick={openGoal} disabled={!month || readOnly}><Pencil className="mr-1.5 h-3.5 w-3.5" />Configurar</Button>}</div></CardHeader><CardContent className="space-y-4"><div><div className="flex justify-between gap-2 text-xs text-[#6e7f88]"><span>Faturamento mensal</span><span>{monthlyGoal ? money.format(monthlyGoal) : "A definir"}</span></div><div className="mt-2 h-3 overflow-hidden rounded-full bg-[#e3eef2]"><div className="h-full bg-[#2e7da3]" style={{ width: `${monthlyGoal ? pct(metrics.revenue, monthlyGoal) : 0}%` }} /></div></div><p className="text-xs text-[#6e7f88]">Meta semanal de vendas: <strong className="text-[#174f6f]">{weeklySalesGoal ? money.format(weeklySalesGoal) : "a definir"}</strong></p><p className="text-xs text-[#6e7f88]">Valores independentes das metas e comissões da página anterior.</p></CardContent></Card></div>
-      <div className="space-y-2"><CrcPortraitCard fillHeight={false} crcName={crcName} displayName={label} commission={metrics.commission} month={month} photoUrl={photoUrl} readOnly={readOnly} /><p className="px-1 text-[11px] text-[#7d8d95]">Foto profissional compartilhada com o Funil de Vendas. A comissão de 0,2% considera somente os fechamentos de Pacientes Ativos desta CRC.</p></div>
+      <div className="space-y-2"><CrcPortraitCard fillHeight={false} crcName={crcName} displayName={label} commission={metrics.commission} month={month} photoUrl={photoUrl} readOnly={readOnly} /><p className="px-1 text-[11px] text-[#7d8d95]">Foto profissional compartilhada com o Funil de Vendas. A comissão de 0,2% considera os fechamentos clínicos desta CRC; Campanha orgânica é direcionada à Comissão Marketing.</p></div>
     </div>
 
     <section><ActiveWeeklyChart records={own} month={month} weeklyGoal={weeklySalesGoal} title={`Vendas semanais · ${label}`} /></section>

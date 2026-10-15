@@ -16,8 +16,15 @@ describe("Pacientes Ativos — métricas isoladas", () => {
     expect(calculateActiveMetrics(records).revenue).toBe(11100);
     expect(calculateActiveMetrics(records).count).toBe(2);
   });
-  it("conta somente pacientes fechados e calcula o tempo apenas desses registros", () => {
+  it("conta somente pacientes fechados e calcula o tempo apenas desses registros", async () => {
     expect(calculateActiveMetrics(records, "JAYZA")).toMatchObject({ count: 1, closedCount: 1, revenue: 3000, averageTimeSeconds: 180 });
     expect(calculateActiveMetrics([{ crcName: "JAYZA", value: "0.00", totalTimeSeconds: 0, internalStatus: "not_closed" }], "JAYZA").averageTimeSeconds).toBeNull();
+  });
+  it("separa Campanha orgânica da receita e comissão clínicas", () => {
+    const result = calculateActiveMetrics([
+      { crcName: "WISLLAYNI", value: "10000.00", totalTimeSeconds: 60, internalStatus: "closed", reference: "Campanha orgânica" },
+      { crcName: "WISLLAYNI", value: "5000.00", totalTimeSeconds: 90, internalStatus: "closed", reference: "Dentista" },
+    ]);
+    expect(result).toMatchObject({ count: 1, closedCount: 1, revenue: 5000, commission: 10, organicRevenue: 10000, organicCount: 1 });
   });
 });
