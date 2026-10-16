@@ -33,4 +33,11 @@ describe("vendas consolidadas por CRC", () => {
     expect(row?.channels.marketing).toMatchObject({ totalSold: 10000, saleCount: 1 });
     expect(row?.channels.clinic).toMatchObject({ totalSold: 5000, saleCount: 1 });
   });
+
+  it("mantém a venda Odontomab no histórico, mas zera a comissão suspensa", () => {
+    const [row] = aggregateSalesByCrc([{ crcName: "Aline", value: "3000.00", module: "odontomab", commissionEligible: false }]);
+    expect(row?.channels.odontomab).toMatchObject({ totalSold: 3000, commission: 0, saleCount: 1 });
+    expect(row?.totalSold).toBe(3000);
+    expect(row?.totalCommission).toBe(0);
+  });
 });

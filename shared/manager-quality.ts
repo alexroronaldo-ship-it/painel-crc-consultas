@@ -1,10 +1,11 @@
 export const MANAGER_MAX_POINTS = {
   sales: 50,
-  tasks: 15,
-  responses: 15,
-  appointments: 10,
-  records: 10,
+  tasks: 20,
+  responses: 5,
+  appointments: 20,
+  records: 5,
 } as const;
+export const MANAGER_TOTAL_SALES_GOAL = 400_000;
 
 export type ManagerRecord = {
   patientName?: string | null;

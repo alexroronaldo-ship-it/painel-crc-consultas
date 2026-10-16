@@ -5,7 +5,7 @@ const dashboard = vi.hoisted(() => vi.fn().mockResolvedValue({ month: "2026-10",
 vi.mock("./managerDb", () => ({ getManagerDashboard: dashboard }));
 import { appRouter } from "./routers";
 
-function context(role: "admin" | "user" = "admin"): TrpcContext {
+function context(role: "admin" | "manager" | "user" = "admin"): TrpcContext {
   return { user: { id: 7, openId: "manager-test", name: "Gerência", email: null, loginMethod: "manus", role, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] };
 }
 
@@ -22,9 +22,15 @@ describe("Painel da gerente", () => {
     expect(dashboard).toHaveBeenCalledWith("2026-10");
   });
 
+  it("permite ao gestor consultar o painel sem receber permissões administrativas", async () => {
+    const caller = appRouter.createCaller(context("manager"));
+    await expect(caller.manager.dashboard({ month: "2026-10", password: "0000" })).resolves.toMatchObject({ month: "2026-10" });
+  });
+
   it("bloqueia usuários que não são administradores", async () => {
     const caller = appRouter.createCaller(context("user"));
+    const callsBefore = dashboard.mock.calls.length;
     await expect(caller.manager.dashboard({ month: "2026-10", password: "0000" })).rejects.toThrow();
-    expect(dashboard).toHaveBeenCalledTimes(1);
+    expect(dashboard).toHaveBeenCalledTimes(callsBefore);
   });
 });

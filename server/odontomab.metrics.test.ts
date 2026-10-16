@@ -14,6 +14,12 @@ describe("Odontomab — métricas por tipo", () => {
     expect(calculateOdontomabMetrics([{ patientType: "active", value: "100000.00" }]).total.commission).toBe(200);
     expect(calculateOdontomabMetrics([]).total).toEqual({ count: 0, revenue: 0, commission: 0 });
   });
+  it("suspende a comissão das vendas de outubro de 2026 e reativa no mês seguinte", () => {
+    const suspended = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-10-16" }]);
+    const resumed = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-11-01" }]);
+    expect(suspended.total).toEqual({ count: 1, revenue: 10000, commission: 0 });
+    expect(resumed.total).toEqual({ count: 1, revenue: 10000, commission: 20 });
+  });
   it("exibe Odontoprev nos registros antigos da Rede Unna sem migrar o valor", () => {
     expect(displayOdontomabInsurance("Rede Unna")).toBe("Rede Unna (Odontoprev)");
     expect(displayOdontomabInsurance(null)).toBe("Não informado");

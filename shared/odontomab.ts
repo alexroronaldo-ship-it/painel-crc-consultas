@@ -4,7 +4,17 @@ export type OdontomabStatus = keyof typeof ODONTOMAB_STATUS_LABELS;
 export const ODONTOMAB_INSURANCE_PLANS = ["Rede Unna (Odontoprev)", "Amil", "Hapvida", "Unimed", "Uniodonto", "Particular"] as const;
 export const ODONTOMAB_TREATMENTS = ["Implante", "Prótese", "Orto", "Clínica em geral"] as const;
 export const ODONTOMAB_COMMISSION_RATE = 0.002;
+/** A implantação suspende comissões somente para vendas datadas em outubro de 2026. */
+export const ODONTOMAB_COMMISSION_SUSPENDED_MONTH = "2026-10";
 export const PATIENT_TYPE_LABELS = { active: "Ativo", new: "Novo" } as const;
+
+export function isOdontomabCommissionSuspended(month?: string | null) {
+  return month === ODONTOMAB_COMMISSION_SUSPENDED_MONTH;
+}
+
+export function isOdontomabSaleCommissionEligible(saleDate?: string | null) {
+  return !isOdontomabCommissionSuspended(saleDate?.slice(0, 7));
+}
 
 /** Compatibilidade de rótulo; não altera convênios históricos no banco. */
 export function displayOdontomabInsurance(plan?: string | null) {
@@ -20,11 +30,12 @@ export function selectOdontomabCrc<T extends { id: string; isActive: boolean }>(
   return crcs.find(crc => crc.id === selectedId) ?? crcs.find(crc => crc.isActive);
 }
 
-export function calculateOdontomabMetrics(rows: Array<{ patientType?: string | null; value: string | number; internalStatus?: OdontomabStatus }>) {
+export function calculateOdontomabMetrics(rows: Array<{ patientType?: string | null; value: string | number; internalStatus?: OdontomabStatus; saleDate?: string | null }>) {
   const summarize = (items: typeof rows) => {
     const closed = items.filter(item => item.internalStatus === "closed" || !item.internalStatus);
     const cents = closed.reduce((sum, item) => sum + Math.round(Number(item.value) * 100), 0);
-    return { count: closed.length, revenue: cents / 100, commission: Math.round(cents * ODONTOMAB_COMMISSION_RATE) / 100 };
+    const commissionCents = closed.filter(item => isOdontomabSaleCommissionEligible(item.saleDate)).reduce((sum, item) => sum + Math.round(Number(item.value) * 100), 0);
+    return { count: closed.length, revenue: cents / 100, commission: Math.round(commissionCents * ODONTOMAB_COMMISSION_RATE) / 100 };
   };
   return {
     total: summarize(rows),

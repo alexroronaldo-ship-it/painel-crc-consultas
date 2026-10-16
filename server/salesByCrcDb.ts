@@ -2,6 +2,7 @@ import { listClosures, listValSales } from "./db";
 import { listOdontomabCrcs } from "./odontomabCrcDb";
 import { listActiveGoals, listActivePatients } from "./orthoActiveDb";
 import { isClinicOrganicReference } from "../shared/orthoReference";
+import { isOdontomabSaleCommissionEligible } from "../shared/odontomab";
 
 export const SALES_BY_CRC_GOAL = 75_000;
 export const MARKETING_COMMISSION_BEFORE_GOAL = 0.002;
@@ -27,11 +28,13 @@ type RawSale = {
   crcName: string;
   value: string | number;
   module: SalesChannel;
-  source: string;
+  source?: string;
+  commissionEligible?: boolean;
 };
 
 type ChannelBucket = {
   totalSold: number;
+  commissionEligibleSold: number;
   saleCount: number;
   sources: Map<string, SourceBreakdown>;
 };
@@ -72,18 +75,19 @@ const displayFixedCrc = (value: string) => value === "WISLLAYNI" ? "Wisllayny" :
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 function emptyBucket(): ChannelBucket {
-  return { totalSold: 0, saleCount: 0, sources: new Map() };
+  return { totalSold: 0, commissionEligibleSold: 0, saleCount: 0, sources: new Map() };
 }
 
 function addSale(bucket: ChannelBucket, sale: RawSale) {
   const amount = Number(sale.value) || 0;
   const sourceLabel = sale.source || SALES_CHANNEL_LABELS[sale.module];
   bucket.totalSold = roundMoney(bucket.totalSold + amount);
+  if (sale.commissionEligible !== false) bucket.commissionEligibleSold = roundMoney(bucket.commissionEligibleSold + amount);
   bucket.saleCount += 1;
   const source = bucket.sources.get(sourceLabel) ?? { label: sourceLabel, totalSold: 0, saleCount: 0 };
   source.totalSold = roundMoney(source.totalSold + amount);
   source.saleCount += 1;
-  bucket.sources.set(sale.source, source);
+  bucket.sources.set(sourceLabel, source);
 }
 
 function commissionRate(channel: SalesChannel, totalSold: number, goal: number) {
@@ -91,7 +95,7 @@ function commissionRate(channel: SalesChannel, totalSold: number, goal: number) 
 }
 
 function summarizeChannel(key: SalesChannel, bucket: ChannelBucket, goal: number): ChannelSalesSummary {
-  const rate = commissionRate(key, bucket.totalSold, goal);
+  const rate = commissionRate(key, bucket.commissionEligibleSold, goal);
   return {
     key,
     label: SALES_CHANNEL_LABELS[key],
@@ -102,7 +106,7 @@ function summarizeChannel(key: SalesChannel, bucket: ChannelBucket, goal: number
     surplus: Math.max(0, roundMoney(bucket.totalSold - goal)),
     saleCount: bucket.saleCount,
     commissionRate: rate,
-    commission: roundMoney(bucket.totalSold * rate),
+    commission: roundMoney(bucket.commissionEligibleSold * rate),
     sources: Array.from(bucket.sources.values()).sort((a, b) => b.totalSold - a.totalSold || a.label.localeCompare(b.label, "pt-BR")),
   };
 }
@@ -168,7 +172,7 @@ export async function getSalesByCrc(month?: string) {
       module: isClinicOrganicReference(row.reference) ? "marketing" as const : "clinic" as const,
       source: isClinicOrganicReference(row.reference) ? "Campanha orgânica → Marketing" : "Fechamentos da Comissão Clínica",
     })),
-    ...odontomab.map(row => ({ crcName: odontomabNames.get(row.crcId) ?? (row.crcId === "VAL" ? "Vivi" : row.crcId), value: row.value, module: "odontomab" as const, source: "Fechamentos da Comissão de Vendas Pacientes" })),
+    ...odontomab.map(row => ({ crcName: odontomabNames.get(row.crcId) ?? (row.crcId === "VAL" ? "Vivi" : row.crcId), value: row.value, module: "odontomab" as const, source: "Fechamentos da Comissão de Vendas Pacientes", commissionEligible: isOdontomabSaleCommissionEligible(row.saleDate) })),
   ];
   const knownNames = ["WISLLAYNI", "JAYZA", ...odontomabCrcs.map(crc => crc.id === "VAL" ? "Vivi" : crc.name)];
   const clinicGoalsByCrc = Object.fromEntries(clinicGoals.filter(goal => goal.monthlyGoal && Number(goal.monthlyGoal) > 0).map(goal => [normalizeName(displayFixedCrc(goal.crcName)), { clinic: Number(goal.monthlyGoal) }])) as Record<string, Partial<Record<SalesChannel, number>>>;
