@@ -6,7 +6,10 @@ import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 /** E-mails aprovados pela gerência antes do primeiro acesso ao painel. */
-const PREAUTHORIZED_ADMIN_EMAILS = new Set(["celsorosafilho@yahoo.com.br"]);
+const PREAUTHORIZED_ADMIN_EMAILS = new Set([
+  "celsorosafilho@yahoo.com.br",
+  "ortoimplante.mab@gmail.com",
+]);
 
 export function isPreauthorizedAdminEmail(email: string | null | undefined) {
   return typeof email === "string" && PREAUTHORIZED_ADMIN_EMAILS.has(email.trim().toLocaleLowerCase("pt-BR"));

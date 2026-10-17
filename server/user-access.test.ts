@@ -5,6 +5,7 @@ describe("autorização antecipada de administrador", () => {
   it("reconhece o e-mail autorizado sem diferenciar maiúsculas, espaços ou acentos de domínio", () => {
     expect(isPreauthorizedAdminEmail("celsorosafilho@yahoo.com.br")).toBe(true);
     expect(isPreauthorizedAdminEmail(" CELSOrosafilho@YAHOO.COM.BR ")).toBe(true);
+    expect(isPreauthorizedAdminEmail("ortoimplante.mab@gmail.com")).toBe(true);
   });
 
   it("não concede administração a outros e-mails", () => {

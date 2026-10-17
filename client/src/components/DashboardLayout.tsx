@@ -11,7 +11,7 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 const logoPath = "/manus-storage/grupo-alva-logo_c2ab66b8.jpg";
 const nav = [
   { href: "/", label: "Comissão Marketing – Ortoimplante", icon: ClipboardCheck },
-  { href: "/pacientes-ativos", label: "Comissão Clínica – Ortoimplant", icon: HeartPulse },
+  { href: "/pacientes-ativos", label: "Comissão Clínica – Ortoimplante", icon: HeartPulse },
   { href: "/campanhas", label: "Campanhas", icon: Megaphone },
   { href: "/val", label: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)", icon: BarChart3 },
   { href: "/vendas-por-crc", label: "Vendas e Comissões por Responsável", icon: CircleDollarSign },

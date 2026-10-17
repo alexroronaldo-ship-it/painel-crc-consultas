@@ -20,7 +20,7 @@ type Crc = { id: string; name: string; isActive: boolean };
 const labels = {
   odontomab: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)",
   funnel: "Comissão Marketing – Ortoimplante",
-  ortho_active: "Comissão Clínica – Ortoimplant",
+  ortho_active: "Comissão Clínica – Ortoimplante",
 };
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
