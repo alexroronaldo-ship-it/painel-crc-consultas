@@ -22,6 +22,7 @@ export type SourceBreakdown = {
   label: string;
   totalSold: number;
   saleCount: number;
+  commission: number;
 };
 
 type RawSale = {
@@ -36,7 +37,14 @@ type ChannelBucket = {
   totalSold: number;
   commissionEligibleSold: number;
   saleCount: number;
-  sources: Map<string, SourceBreakdown>;
+  sources: Map<string, SourceBucket>;
+};
+
+type SourceBucket = {
+  label: string;
+  totalSold: number;
+  commissionEligibleSold: number;
+  saleCount: number;
 };
 
 export type ChannelSalesSummary = {
@@ -84,8 +92,9 @@ function addSale(bucket: ChannelBucket, sale: RawSale) {
   bucket.totalSold = roundMoney(bucket.totalSold + amount);
   if (sale.commissionEligible !== false) bucket.commissionEligibleSold = roundMoney(bucket.commissionEligibleSold + amount);
   bucket.saleCount += 1;
-  const source = bucket.sources.get(sourceLabel) ?? { label: sourceLabel, totalSold: 0, saleCount: 0 };
+  const source = bucket.sources.get(sourceLabel) ?? { label: sourceLabel, totalSold: 0, commissionEligibleSold: 0, saleCount: 0 };
   source.totalSold = roundMoney(source.totalSold + amount);
+  if (sale.commissionEligible !== false) source.commissionEligibleSold = roundMoney(source.commissionEligibleSold + amount);
   source.saleCount += 1;
   bucket.sources.set(sourceLabel, source);
 }
@@ -107,7 +116,14 @@ function summarizeChannel(key: SalesChannel, bucket: ChannelBucket, goal: number
     saleCount: bucket.saleCount,
     commissionRate: rate,
     commission: roundMoney(bucket.commissionEligibleSold * rate),
-    sources: Array.from(bucket.sources.values()).sort((a, b) => b.totalSold - a.totalSold || a.label.localeCompare(b.label, "pt-BR")),
+    sources: Array.from(bucket.sources.values())
+      .map(source => ({
+        label: source.label,
+        totalSold: source.totalSold,
+        saleCount: source.saleCount,
+        commission: roundMoney(source.commissionEligibleSold * rate),
+      }))
+      .sort((a, b) => b.totalSold - a.totalSold || a.label.localeCompare(b.label, "pt-BR")),
   };
 }
 

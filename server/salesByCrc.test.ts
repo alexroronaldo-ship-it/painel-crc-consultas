@@ -13,8 +13,8 @@ describe("vendas consolidadas por CRC", () => {
     expect(rows[0]?.channels.marketing).toMatchObject({ totalSold: 30000, goal: 75000, commission: 60, saleCount: 1 });
     expect(rows[0]?.channels.clinic).toMatchObject({ totalSold: 20000, goal: 75000, commission: 40, saleCount: 1 });
     expect(rows[0]?.sources).toEqual(expect.arrayContaining([
-      { label: "Comissão Marketing", totalSold: 30000, saleCount: 1 },
-      { label: "Comissão Clínica", totalSold: 20000, saleCount: 1 },
+      expect.objectContaining({ label: "Comissão Marketing", totalSold: 30000, saleCount: 1, commission: 60 }),
+      expect.objectContaining({ label: "Comissão Clínica", totalSold: 20000, saleCount: 1, commission: 40 }),
     ]));
     expect(rows.find(row => row.name === "JAYZA")).toMatchObject({ totalSold: 0, remaining: 225000, saleCount: 0 });
   });
@@ -30,7 +30,10 @@ describe("vendas consolidadas por CRC", () => {
       { crcName: "WISLLAYNI", value: "10000.00", module: "marketing", source: "Campanha orgânica → Marketing" },
       { crcName: "WISLLAYNI", value: "5000.00", module: "clinic", source: "Fechamentos da Comissão Clínica" },
     ]);
-    expect(row?.channels.marketing).toMatchObject({ totalSold: 10000, saleCount: 1 });
+    expect(row?.channels.marketing).toMatchObject({ totalSold: 10000, saleCount: 1, commission: 20 });
+    expect(row?.channels.marketing.sources).toEqual([
+      { label: "Campanha orgânica → Marketing", totalSold: 10000, saleCount: 1, commission: 20 },
+    ]);
     expect(row?.channels.clinic).toMatchObject({ totalSold: 5000, saleCount: 1 });
   });
 
