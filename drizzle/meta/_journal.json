@@ -197,6 +197,13 @@
       "when": 1792177202277,
       "tag": "0027_graceful_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "5",
+      "when": 1792255648687,
+      "tag": "0028_hard_prowler",
+      "breakpoints": true
     }
   ]
 }

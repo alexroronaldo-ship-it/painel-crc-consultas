@@ -184,6 +184,16 @@ export const managerAuditLogs = mysqlTable("manager_audit_logs", {
 export type ManagerAuditLog = typeof managerAuditLogs.$inferSelect;
 export type InsertManagerAuditLog = typeof managerAuditLogs.$inferInsert;
 
+/** Cinco posições fixas da equipe; trocar o nome não altera os IDs nem os cálculos históricos. */
+export const managerCrcSlots = mysqlTable("manager_crc_slots", {
+  slot: int("slot").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  updatedBy: int("updatedBy"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ManagerCrcSlot = typeof managerCrcSlots.$inferSelect;
+
 /** Módulo independente: Pacientes Ativos Orto Implante. Não mistura registros com closures/campaigns. */
 export const orthoActiveCampaigns = mysqlTable("ortho_active_campaigns", {
   id: int("id").autoincrement().primaryKey(),

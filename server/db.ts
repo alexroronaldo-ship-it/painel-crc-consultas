@@ -1,5 +1,5 @@
 import { withActiveCrcWrite } from "./crcWriteGuard";
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, notInArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { campaigns, closures, crcProfiles, crcWeeklyActivities, crcWeeklyAppointments, InsertCampaign, InsertClosure, InsertCrcWeeklyActivity, InsertCrcWeeklyAppointment, InsertUser, InsertValSale, users, valSales, odontomabCrcs } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -236,8 +236,10 @@ export async function mergeCampaigns(sourceId: number, targetId: number) {
 export async function listValSales(month?: string) {
   const db = await getDb();
   if (!db) return [];
+  const hiddenCrcs = await db.select({ id: odontomabCrcs.id }).from(odontomabCrcs).where(eq(odontomabCrcs.normalizedName, "michele"));
+  const visible = hiddenCrcs.length ? notInArray(valSales.crcId, hiddenCrcs.map(row => row.id)) : undefined;
   if (!month) {
-    return db.select().from(valSales).where(eq(valSales.internalStatus, "closed")).orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
+    return db.select().from(valSales).where(visible ? and(eq(valSales.internalStatus, "closed"), visible) : eq(valSales.internalStatus, "closed")).orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
   }
 
   const [year, monthNumber] = month.split("-").map(Number);
@@ -248,7 +250,7 @@ export async function listValSales(month?: string) {
   return db
     .select()
     .from(valSales)
-    .where(and(eq(valSales.internalStatus, "closed"), gte(valSales.saleDate, `${month}-01`), lt(valSales.saleDate, `${nextMonth}-01`)))
+    .where(and(eq(valSales.internalStatus, "closed"), gte(valSales.saleDate, `${month}-01`), lt(valSales.saleDate, `${nextMonth}-01`), ...(visible ? [visible] : [])))
     .orderBy(desc(valSales.saleDate), desc(valSales.createdAt));
 }
 

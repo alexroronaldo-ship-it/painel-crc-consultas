@@ -26,6 +26,7 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
   const weeklySalesGoal = goal?.weeklySalesGoal ? Number(goal.weeklySalesGoal) : null;
   const own = records.filter(item => item.crcName === crcName);
   const metrics = calculateActiveMetrics(own);
+  const displayedRevenue = metrics.revenue + metrics.organicRevenue;
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalMonth, setGoalMonth] = useState("");
   const [goalWeekly, setGoalWeekly] = useState("");
@@ -75,7 +76,7 @@ export default function OrthoActiveCrcPanel({ crcName, month, records, goals, we
   return <div className="space-y-5">
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(250px,320px)]">
       <div className="space-y-4"><div className="grid gap-4 sm:grid-cols-3">
-        <Stat label={`Vendas · ${label}`} value={money.format(metrics.revenue)} detail={`${metrics.closedCount} fechamentos neste módulo`} />
+        <Stat label={`Vendas · ${label}`} value={money.format(displayedRevenue)} detail={`${metrics.closedCount} fechamentos clínicos${metrics.organicCount ? ` + ${metrics.organicCount} Campanha orgânica` : ""} · a orgânica não entra na meta ou comissão clínica`} />
         <Stat label="Meta mensal própria" value={monthlyGoal ? money.format(monthlyGoal) : "Não definida"} detail={monthlyGoal ? metrics.revenue >= monthlyGoal ? `Meta superada em ${money.format(metrics.revenue - monthlyGoal)}` : `Faltam ${money.format(monthlyGoal - metrics.revenue)}` : "Configure sem afetar o Funil de Vendas"} />
         <Stat label="Pacientes registrados" value={String(metrics.count)} detail="Somente Wisllayny e JAYZA" />
       </div>

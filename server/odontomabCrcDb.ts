@@ -9,7 +9,7 @@ async function db() { const instance = await getDb(); if (!instance) throw new E
 export async function listOdontomabCrcs() {
   const instance = await db();
   const rows = await instance.select({ id: odontomabCrcs.id, name: odontomabCrcs.name, photoUrl: odontomabCrcs.photoUrl, isActive: odontomabCrcs.isActive }).from(odontomabCrcs).orderBy(odontomabCrcs.createdAt, odontomabCrcs.name);
-  return rows.sort((a, b) => a.id === "VAL" ? -1 : b.id === "VAL" ? 1 : 0);
+  return rows.filter(row => normalizeCrcName(row.name) !== "michele").sort((a, b) => a.id === "VAL" ? -1 : b.id === "VAL" ? 1 : 0);
 }
 export async function requireOdontomabCrc(id: string, includeRemoved = false) {
   const instance = await db();

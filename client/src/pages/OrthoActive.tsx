@@ -7,13 +7,14 @@ import TablePagination from "@/components/TablePagination";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ACTIVE_CRC_LABELS, calculateActiveMetrics, type ActiveCrcName } from "@/lib/ortho-active";
 import { paginateItems } from "@/lib/pagination";
 import { trpc } from "@/lib/trpc";
-import { Check, DollarSign, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Check, CircleHelp, DollarSign, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -55,6 +56,7 @@ export default function OrthoActive() {
   const weeksQuery = trpc.orthoActive.weekly.list.useQuery({ month: month || currentMonth }, { enabled: Boolean(month) });
   const patients = (patientsQuery.data ?? []).filter(item => names.includes(item.crcName as ActiveCrcName));
   const metrics = calculateActiveMetrics(patients);
+  const displayedRevenue = metrics.revenue + metrics.organicRevenue;
 
   const selectCrc = (id: string) => { setSelectedCrcId(id); setCrcName(""); setPage(1); };
   useEffect(() => { if (crcName && !activeTeam.some(crc => crc.id === crcName)) setCrcName(""); }, [teamQuery.data, crcName]);
@@ -82,7 +84,7 @@ export default function OrthoActive() {
 
   return <DashboardLayout><div className="min-h-screen bg-[#f3f8fb] px-4 py-6 sm:px-8 sm:py-8"><div className="mx-auto max-w-7xl space-y-6">
     <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><img src="/manus-storage/ortoimplante-logo-new_f9d1ae47.png" alt="Orto Implante" className="mb-4 h-20 w-auto max-w-full object-contain object-left sm:h-24" /><h1 className="text-3xl font-semibold tracking-tight text-[#174f6f]">Comissão Clínica – Ortoimplante</h1><p className="mt-1 text-sm text-[#6e7f88]">Pacientes internos e indicados, com referências e metas próprias · sem registro de campanha.</p></div><div><label htmlFor="active-period" className="mb-1 block text-xs font-semibold uppercase text-[#6e7f88]">Período</label><div className="flex gap-2"><Input id="active-period" type="month" value={month} onChange={e => { setMonth(e.target.value); setPage(1); }} className="w-44 bg-white" /><Button type="button" variant="outline" className="bg-white" onClick={() => { setMonth(""); setPage(1); }}>Todo período</Button></div></div></header>
-    <Card className="border-[#cddfe8] bg-white shadow-sm"><CardContent className="flex items-center justify-between gap-4 p-6"><div><p className="text-sm text-[#6e7f88]">Vendas fechadas · Comissão Clínica</p><p className="mt-2 text-3xl font-semibold text-[#174f6f]">{money.format(metrics.revenue)}</p><p className="mt-1 text-xs text-[#8b989d]">{metrics.closedCount} fechamentos neste período · pacientes internos e indicados</p></div><div className="rounded-2xl bg-[#e5f1f6] p-3 text-[#2e7da3]"><DollarSign className="h-6 w-6" /></div></CardContent></Card>
+    <Card className="border-[#cddfe8] bg-white shadow-sm"><CardContent className="flex items-center justify-between gap-4 p-6"><div><div className="flex items-center gap-1"><p className="text-sm text-[#6e7f88]">Vendas fechadas · total exibido</p><Tooltip><TooltipTrigger asChild><button type="button" aria-label="Explicação do total exibido" className="rounded-full text-[#7694a3] outline-none hover:text-[#2e718f]"><CircleHelp className="h-3.5 w-3.5" /></button></TooltipTrigger><TooltipContent className="max-w-72 bg-[#174f6f] text-white">Inclui vendas da Campanha orgânica. Este valor não conta para a faixa de comissão da clínica.</TooltipContent></Tooltip></div><p className="mt-2 text-3xl font-semibold text-[#174f6f]">{money.format(displayedRevenue)}</p><p className="mt-1 text-xs text-[#8b989d]">{metrics.closedCount} fechamentos clínicos{metrics.organicCount ? ` + ${metrics.organicCount} Campanha orgânica` : ""} neste período</p></div><div className="rounded-2xl bg-[#e5f1f6] p-3 text-[#2e7da3]"><DollarSign className="h-6 w-6" /></div></CardContent></Card>
     {patientsQuery.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">Não foi possível carregar pacientes: {patientsQuery.error.message}</p>}
     <OrtoCrcManagement scope="ortho_active" crcs={team} selectedId={selectedCrc?.id ?? ""} onSelect={selectCrc} />
     {teamQuery.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">Não foi possível carregar a equipe: {teamQuery.error.message}</p>}
