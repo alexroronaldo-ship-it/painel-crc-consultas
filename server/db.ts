@@ -5,6 +5,12 @@ import { campaigns, closures, crcProfiles, crcWeeklyActivities, crcWeeklyAppoint
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+/** E-mails aprovados pela gerência antes do primeiro acesso ao painel. */
+const PREAUTHORIZED_ADMIN_EMAILS = new Set(["celsorosafilho@yahoo.com.br"]);
+
+export function isPreauthorizedAdminEmail(email: string | null | undefined) {
+  return typeof email === "string" && PREAUTHORIZED_ADMIN_EMAILS.has(email.trim().toLocaleLowerCase("pt-BR"));
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -25,7 +31,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   textFields.forEach(field => { const value = user[field]; if (value !== undefined) { const normalized = value ?? null; values[field] = normalized; updateSet[field] = normalized; } });
   if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
   if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
-  else if (user.openId === ENV.ownerOpenId) { values.role = "admin"; updateSet.role = "admin"; }
+  else if (user.openId === ENV.ownerOpenId || isPreauthorizedAdminEmail(user.email)) { values.role = "admin"; updateSet.role = "admin"; }
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
   await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
