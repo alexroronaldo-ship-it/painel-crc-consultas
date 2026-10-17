@@ -14,7 +14,7 @@ const nav = [
   { href: "/pacientes-ativos", label: "Comissão Clínica – Ortoimplant", icon: HeartPulse },
   { href: "/campanhas", label: "Campanhas", icon: Megaphone },
   { href: "/val", label: "Comissão de Vendas Pacientes - Odontomab (ativos & novos)", icon: BarChart3 },
-  { href: "/vendas-por-crc", label: "Total vendido por CRC", icon: CircleDollarSign },
+  { href: "/vendas-por-crc", label: "Vendas e Comissões por Responsável", icon: CircleDollarSign },
   { href: "/acompanhamento", label: "Acompanhamento de Pacientes", icon: ListChecks },
   { href: "/gerente", label: "Painel da Gerente", icon: ShieldCheck },
 ] as const;

@@ -5,6 +5,12 @@ import { isClinicOrganicReference } from "../shared/orthoReference";
 import { isOdontomabSaleCommissionEligible } from "../shared/odontomab";
 
 export const SALES_BY_CRC_GOAL = 75_000;
+export const SALES_BY_CRC_COMBINED_GOAL = 375_000;
+export const SALES_CHANNEL_TEAM_GOALS: Record<SalesChannel, number> = {
+  marketing: 150_000,
+  clinic: 150_000,
+  odontomab: 75_000,
+};
 export const MARKETING_COMMISSION_BEFORE_GOAL = 0.002;
 export const MARKETING_COMMISSION_AT_GOAL = 0.005;
 export const FIXED_CHANNEL_COMMISSION = 0.002;
@@ -13,9 +19,9 @@ export const SALES_CHANNELS = ["marketing", "clinic", "odontomab"] as const;
 export type SalesChannel = (typeof SALES_CHANNELS)[number];
 
 export const SALES_CHANNEL_LABELS: Record<SalesChannel, string> = {
-  marketing: "Comissão Marketing",
-  clinic: "Comissão Clínica",
-  odontomab: "Comissão de Vendas Pacientes",
+  marketing: "Comissão Marketing Ortoimplante",
+  clinic: "Comissão Clínica Ortoimplante",
+  odontomab: "Comissão Odontomab",
 };
 
 export type SourceBreakdown = {
@@ -188,7 +194,7 @@ export async function getSalesByCrc(month?: string) {
       module: isClinicOrganicReference(row.reference) ? "marketing" as const : "clinic" as const,
       source: isClinicOrganicReference(row.reference) ? "Campanha orgânica → Marketing" : "Fechamentos da Comissão Clínica",
     })),
-    ...odontomab.map(row => ({ crcName: odontomabNames.get(row.crcId) ?? (row.crcId === "VAL" ? "Vivi" : row.crcId), value: row.value, module: "odontomab" as const, source: "Fechamentos da Comissão de Vendas Pacientes", commissionEligible: isOdontomabSaleCommissionEligible(row.saleDate) })),
+    ...odontomab.map(row => ({ crcName: odontomabNames.get(row.crcId) ?? (row.crcId === "VAL" ? "Vivi" : row.crcId), value: row.value, module: "odontomab" as const, source: "Fechamentos da Comissão Odontomab", commissionEligible: isOdontomabSaleCommissionEligible(row.saleDate) })),
   ];
   const knownNames = ["WISLLAYNI", "JAYZA", ...odontomabCrcs.map(crc => crc.id === "VAL" ? "Vivi" : crc.name)];
   const clinicGoalsByCrc = Object.fromEntries(clinicGoals.filter(goal => goal.monthlyGoal && Number(goal.monthlyGoal) > 0).map(goal => [normalizeName(displayFixedCrc(goal.crcName)), { clinic: Number(goal.monthlyGoal) }])) as Record<string, Partial<Record<SalesChannel, number>>>;
@@ -196,7 +202,7 @@ export async function getSalesByCrc(month?: string) {
   return {
     month: month ?? null,
     goal: SALES_BY_CRC_GOAL,
-    combinedGoal: rows.reduce((sum, row) => sum + row.goal, 0),
+    combinedGoal: SALES_BY_CRC_COMBINED_GOAL,
     channelLabels: SALES_CHANNEL_LABELS,
     rows,
     totalSold: rows.reduce((sum, row) => sum + row.totalSold, 0),
@@ -206,7 +212,7 @@ export async function getSalesByCrc(month?: string) {
       totalSold: roundMoney(rows.reduce((sum, row) => sum + row.channels[key].totalSold, 0)),
       totalCommission: roundMoney(rows.reduce((sum, row) => sum + row.channels[key].commission, 0)),
       saleCount: rows.reduce((sum, row) => sum + row.channels[key].saleCount, 0),
-      goal: roundMoney(rows.reduce((sum, row) => sum + row.channels[key].goal, 0)),
+      goal: SALES_CHANNEL_TEAM_GOALS[key],
     }])) as Record<SalesChannel, { totalSold: number; totalCommission: number; saleCount: number; goal: number }>,
   };
 }

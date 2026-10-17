@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { aggregateSalesByCrc, SALES_BY_CRC_GOAL } from "./salesByCrcDb";
+import { aggregateSalesByCrc, SALES_BY_CRC_COMBINED_GOAL, SALES_BY_CRC_GOAL, SALES_CHANNEL_TEAM_GOALS } from "./salesByCrcDb";
 
 describe("vendas consolidadas por CRC", () => {
+  it("define a meta combinada da equipe em 375 mil por canal", () => {
+    expect(SALES_BY_CRC_COMBINED_GOAL).toBe(375_000);
+    expect(SALES_CHANNEL_TEAM_GOALS).toEqual({ marketing: 150_000, clinic: 150_000, odontomab: 75_000 });
+  });
+
   it("soma vendas das três páginas para a mesma CRC", () => {
     const rows = aggregateSalesByCrc([
       { crcName: "WISLLAYNI", value: "30000.00", module: "marketing" },
@@ -13,8 +18,8 @@ describe("vendas consolidadas por CRC", () => {
     expect(rows[0]?.channels.marketing).toMatchObject({ totalSold: 30000, goal: 75000, commission: 60, saleCount: 1 });
     expect(rows[0]?.channels.clinic).toMatchObject({ totalSold: 20000, goal: 75000, commission: 40, saleCount: 1 });
     expect(rows[0]?.sources).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Comissão Marketing", totalSold: 30000, saleCount: 1, commission: 60 }),
-      expect.objectContaining({ label: "Comissão Clínica", totalSold: 20000, saleCount: 1, commission: 40 }),
+      expect.objectContaining({ label: "Comissão Marketing Ortoimplante", totalSold: 30000, saleCount: 1, commission: 60 }),
+      expect.objectContaining({ label: "Comissão Clínica Ortoimplante", totalSold: 20000, saleCount: 1, commission: 40 }),
     ]));
     expect(rows.find(row => row.name === "JAYZA")).toMatchObject({ totalSold: 0, remaining: 225000, saleCount: 0 });
   });
