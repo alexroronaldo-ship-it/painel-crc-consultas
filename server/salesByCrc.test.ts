@@ -48,4 +48,10 @@ describe("vendas consolidadas por CRC", () => {
     expect(row?.totalSold).toBe(3000);
     expect(row?.totalCommission).toBe(0);
   });
+
+  it("mantém a comissão reativada da Vivi no consolidado", () => {
+    const [row] = aggregateSalesByCrc([{ crcName: "Vivi", value: "3000.00", module: "odontomab", commissionEligible: true }]);
+    expect(row?.channels.odontomab).toMatchObject({ totalSold: 3000, commission: 6, saleCount: 1 });
+    expect(row?.totalCommission).toBe(6);
+  });
 });

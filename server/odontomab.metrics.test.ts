@@ -14,10 +14,12 @@ describe("Odontomab — métricas por tipo", () => {
     expect(calculateOdontomabMetrics([{ patientType: "active", value: "100000.00" }]).total.commission).toBe(200);
     expect(calculateOdontomabMetrics([]).total).toEqual({ count: 0, revenue: 0, commission: 0 });
   });
-  it("suspende a comissão das vendas de outubro de 2026 e reativa no mês seguinte", () => {
-    const suspended = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-10-16" }]);
-    const resumed = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-11-01" }]);
+  it("suspende as demais CRCs em outubro, mas mantém a comissão reativada da Vivi", () => {
+    const suspended = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-10-16", crcId: "ODO_ALINE" }]);
+    const vivi = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-10-16", crcId: "VAL" }]);
+    const resumed = calculateOdontomabMetrics([{ patientType: "active", value: "10000.00", saleDate: "2026-11-01", crcId: "ODO_ALINE" }]);
     expect(suspended.total).toEqual({ count: 1, revenue: 10000, commission: 0 });
+    expect(vivi.total).toEqual({ count: 1, revenue: 10000, commission: 20 });
     expect(resumed.total).toEqual({ count: 1, revenue: 10000, commission: 20 });
   });
   it("exibe Odontoprev nos registros antigos da Rede Unna sem migrar o valor", () => {

@@ -10,7 +10,7 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 type CrcName = string;
 const validTypes = ["image/jpeg", "image/png", "image/webp"];
 
-export default function OdontomabCrcPortrait({ crcName, displayName, commission, revenue, month, photoUrl, readOnly = false, commissionSuspended = false }: {
+export default function OdontomabCrcPortrait({ crcName, displayName, commission, revenue, month, photoUrl, readOnly = false, commissionSuspended = false, commissionReactivated = false }: {
   crcName: CrcName;
   displayName: string;
   commission?: number;
@@ -19,6 +19,7 @@ export default function OdontomabCrcPortrait({ crcName, displayName, commission,
   photoUrl?: string;
   readOnly?: boolean;
   commissionSuspended?: boolean;
+  commissionReactivated?: boolean;
 }) {
   const inputId = useId();
   const utils = trpc.useUtils();
@@ -63,7 +64,7 @@ export default function OdontomabCrcPortrait({ crcName, displayName, commission,
         {photoUrl ? <img key={photoUrl} src={photoUrl} alt={`Foto profissional de ${displayName}`} className="absolute inset-0 h-full w-full object-cover object-top" /> : <div className="px-5 text-center text-[#7390a0]"><UserRound className="mx-auto mb-3 h-12 w-12 text-[#9cbac9]" aria-hidden="true" /><p className="text-sm font-medium">Foto de {displayName}</p><p className="mt-1 text-xs">Espaço reservado para a foto profissional</p></div>}
       </div>
       {user?.role === "admin" && !readOnly && <div className="mt-3"><input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={onPhotoSelected} disabled={upload.isPending} className="sr-only" aria-label={`Selecionar foto profissional de ${displayName}`} /><Button type="button" variant="outline" className="w-full border-[#c9dfe8] text-[#2e718f] hover:bg-[#eef7fa]" disabled={upload.isPending} onClick={() => document.getElementById(inputId)?.click()}>{upload.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}{photoUrl ? "Trocar foto" : "Adicionar foto"}</Button><p className="mt-1.5 text-center text-[11px] text-[#8b989d]">JPG, PNG ou WebP · até 2 MB</p></div>}
-      <div className="mt-5 rounded-xl bg-[#e8f4f8] p-4" aria-live="polite"><p className="text-xs font-semibold uppercase tracking-wide text-[#486a7b]">{commission === undefined ? "Vendas" : "Comissão"} {month ? "do mês" : "de todo o período"}</p><p className="mt-1 break-words text-3xl font-bold tracking-tight text-[#176187]">{currency.format(commission ?? revenue ?? 0)}</p><p className={`mt-1 text-xs ${commissionSuspended ? "font-medium text-[#8b6720]" : "text-[#6e7f88]"}`}>{commission === undefined ? `Vendas próprias de ${displayName}, separadas do Comissão Marketing – Ortoimplante.` : commissionSuspended ? "Comissão suspensa neste mês – em implantação." : `Calculada sobre as vendas de ${displayName}${month ? " no período selecionado" : ""}.`}</p></div>
+      <div className="mt-5 rounded-xl bg-[#e8f4f8] p-4" aria-live="polite"><p className="text-xs font-semibold uppercase tracking-wide text-[#486a7b]">{commission === undefined ? "Vendas" : "Comissão"} {month ? "do mês" : "de todo o período"}</p><p className="mt-1 break-words text-3xl font-bold tracking-tight text-[#176187]">{currency.format(commission ?? revenue ?? 0)}</p><p className={`mt-1 text-xs ${commissionSuspended ? "font-medium text-[#8b6720]" : commissionReactivated ? "font-medium text-[#3f8750]" : "text-[#6e7f88]"}`}>{commission === undefined ? `Vendas próprias de ${displayName}, separadas do Comissão Marketing – Ortoimplante.` : commissionReactivated ? "Comissão reativada neste mês · 0,2% sobre as vendas de Vivi." : commissionSuspended ? "Comissão suspensa neste mês – em implantação." : `Calculada sobre as vendas de ${displayName}${month ? " no período selecionado" : ""}.`}</p></div>
     </CardContent>
   </Card>;
 }

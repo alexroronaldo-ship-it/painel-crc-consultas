@@ -194,7 +194,7 @@ export async function getSalesByCrc(month?: string) {
       module: isClinicOrganicReference(row.reference) ? "marketing" as const : "clinic" as const,
       source: isClinicOrganicReference(row.reference) ? "Campanha orgânica → Marketing" : "Fechamentos da Comissão Clínica",
     })),
-    ...odontomab.map(row => ({ crcName: odontomabNames.get(row.crcId) ?? (row.crcId === "VAL" ? "Vivi" : row.crcId), value: row.value, module: "odontomab" as const, source: "Fechamentos da Comissão Odontomab", commissionEligible: isOdontomabSaleCommissionEligible(row.saleDate) })),
+    ...odontomab.map(row => ({ crcName: odontomabNames.get(row.crcId) ?? (row.crcId === "VAL" ? "Vivi" : row.crcId), value: row.value, module: "odontomab" as const, source: "Fechamentos da Comissão Odontomab", commissionEligible: isOdontomabSaleCommissionEligible(row.saleDate, row.crcId) })),
   ];
   const knownNames = ["WISLLAYNI", "JAYZA", ...odontomabCrcs.map(crc => crc.id === "VAL" ? "Vivi" : crc.name)];
   const clinicGoalsByCrc = Object.fromEntries(clinicGoals.filter(goal => goal.monthlyGoal && Number(goal.monthlyGoal) > 0).map(goal => [normalizeName(displayFixedCrc(goal.crcName)), { clinic: Number(goal.monthlyGoal) }])) as Record<string, Partial<Record<SalesChannel, number>>>;
