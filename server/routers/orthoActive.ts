@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { recordManagerAudit } from "../managerAuditDb";
-import { createActiveCampaign, createActivePatient, deleteActivePatient, deleteEmptyActiveCampaign, listActiveCampaigns, listActiveGoals, listActivePatients, listActiveWeeks, saveActiveAppointments, saveActiveGoal, saveActiveTasks, updateActiveCampaign, updateActivePatientTime } from "../orthoActiveDb";
+import { createActiveCampaign, createActivePatient, deleteActivePatient, deleteEmptyActiveCampaign, listActiveCampaigns, listActiveGoals, listActivePatients, listActiveWeeks, saveActiveAppointments, saveActiveGoal, saveActiveTasks, updateActiveCampaign, updateActivePatient, updateActivePatientTime } from "../orthoActiveDb";
 
 import { assertOrtoCrcActive } from "../crcTransferDb";
 
@@ -44,6 +44,18 @@ export const orthoActiveRouter = router({
       checkPassword(input.password);
       const deleted = await deleteActivePatient(input.id);
       await recordManagerAudit({ module: "clinic", action: "deleted", entityId: deleted.id, patientName: deleted.patientName, crcName: deleted.crcName, summary: "Paciente clínico excluído", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
+      return { success: true } as const;
+    }),
+    update: protectedProcedure.input(z.object({
+      id: z.number().int().positive(), crcName: crc, patientName: z.string().trim().min(2).max(160), phone: z.string().trim().min(8).max(40),
+      contactChannel: z.enum(["WhatsApp", "Ligação", "Presencial", "Instagram"]), reference: z.enum(CLINIC_REFERENCE_OPTIONS), closingDate: date,
+      closedItem: z.enum(ORTHO_TREATMENTS), value: money, totalTimeSeconds: z.number().int().min(0).max(86400),
+      internalStatus: z.literal("closed"), internalNotes: z.string().trim().min(2).max(5000),
+    })).mutation(async ({ ctx, input }) => {
+      await assertOrtoCrcActive("ortho_active", input.crcName);
+      const { id, ...values } = input;
+      const updated = await updateActivePatient(id, { ...values, value: values.value.replace(",", ".") });
+      await recordManagerAudit({ module: "clinic", action: "updated", entityId: updated.id, patientName: updated.patientName, crcName: updated.crcName, summary: "Paciente clínico corrigido", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
       return { success: true } as const;
     }),
     updateTime: protectedProcedure.input(z.object({ id: z.number().int().positive(), totalTimeSeconds: z.number().int().min(0).max(86400) })).mutation(async ({ ctx, input }) => {

@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateGoalProgress } from "@/lib/goal-progress";
 import { paginateItems } from "@/lib/pagination";
 import { trpc } from "@/lib/trpc";
-import { ODONTOMAB_STATUS_LABELS, type OdontomabStatus, ODONTOMAB_INSURANCE_PLANS, ODONTOMAB_TREATMENTS, PATIENT_TYPE_LABELS, calculateOdontomabInsuranceMetrics, calculateOdontomabMetrics, calculateOdontomabTreatmentMetrics, displayOdontomabInsurance, isOdontomabCommissionSuspended, isOdontomabCommissionSuspendedForCrc, salesForOdontomabCrc, selectOdontomabCrc } from "@shared/odontomab";
+import { ODONTOMAB_STATUS_LABELS, type OdontomabStatus, ODONTOMAB_INSURANCE_PLANS, ODONTOMAB_REFERENCE_OPTIONS, ODONTOMAB_TREATMENTS, PATIENT_TYPE_LABELS, calculateOdontomabInsuranceMetrics, calculateOdontomabMetrics, calculateOdontomabTreatmentMetrics, displayOdontomabInsurance, isOdontomabCommissionSuspended, isOdontomabCommissionSuspendedForCrc, salesForOdontomabCrc, selectOdontomabCrc } from "@shared/odontomab";
 import { Check, DollarSign, HeartPulse, Loader2, Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,9 +25,9 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 const formatPhone = (value: string) => value.replace(/\D/g, "").replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 15);
-type PatientForm = { crcId: string; patientName: string; phone: string; patientType: "" | "active" | "new"; saleDate: string; value: string; timeMinutes: string; insurancePlan: string; treatment: string; notes: string };
-const emptyForm = (): PatientForm => ({ crcId: "", patientName: "", phone: "", patientType: "", saleDate: "", value: "", timeMinutes: "", insurancePlan: "", treatment: "", notes: "" });
-type SaleRow = { internalStatus: OdontomabStatus; id: number; crcId: string; patientName: string | null; phone: string | null; patientType: "active" | "new" | null; saleDate: string; value: string; totalTimeSeconds: number; insurancePlan: string | null; treatment: string | null; notes: string | null; photoUrl: string | null };
+type PatientForm = { crcId: string; patientName: string; phone: string; patientType: "" | "active" | "new"; saleDate: string; value: string; timeMinutes: string; insurancePlan: string; treatment: string; reference: string; notes: string };
+const emptyForm = (): PatientForm => ({ crcId: "", patientName: "", phone: "", patientType: "", saleDate: "", value: "", timeMinutes: "", insurancePlan: "", treatment: "", reference: "", notes: "" });
+type SaleRow = { internalStatus: OdontomabStatus; id: number; crcId: string; patientName: string | null; phone: string | null; patientType: "active" | "new" | null; saleDate: string; value: string; totalTimeSeconds: number; insurancePlan: string | null; treatment: string | null; reference: string | null; notes: string | null; photoUrl: string | null };
 
 export default function ValDashboard() {
   const [selectedCrcId, setSelectedCrcId] = useState("VAL");
@@ -60,7 +60,7 @@ export default function ValDashboard() {
   const filtered = useMemo(() => ownSales.filter(sale => {
     const typeMatches = !typeFilter || (typeFilter === "unclassified" ? !sale.patientType : sale.patientType === typeFilter);
     const term = search.trim().toLocaleLowerCase("pt-BR");
-    return typeMatches && (!term || `${sale.patientName ?? ""} ${sale.phone ?? ""} ${displayOdontomabInsurance(sale.insurancePlan)} ${sale.notes ?? ""}`.toLocaleLowerCase("pt-BR").includes(term));
+    return typeMatches && (!term || `${sale.patientName ?? ""} ${sale.phone ?? ""} ${displayOdontomabInsurance(sale.insurancePlan)} ${sale.reference ?? ""} ${sale.notes ?? ""}`.toLocaleLowerCase("pt-BR").includes(term));
   }), [ownSales, typeFilter, search]);
   const paginated = paginateItems(filtered, salesPage);
   const speedRecords = useMemo(() => ownSales.map(sale => ({ closingDate: sale.saleDate, totalTimeSeconds: sale.totalTimeSeconds })), [ownSales]);
@@ -95,13 +95,14 @@ export default function ValDashboard() {
     if (values.notes.trim().length < 2) return toast.error("Informe uma observação");
     const minutes = values.timeMinutes ? Number(values.timeMinutes.replace(",", ".")) : 0;
     if (!Number.isFinite(minutes) || minutes < 0 || minutes > 1440) return toast.error("Informe um tempo válido");
-    const input = { internalStatus: "closed" as const, crcId: values.crcId, patientName: values.patientName, phone: values.phone, patientType: values.patientType, saleDate: values.saleDate, value: values.value, totalTimeSeconds: Math.round(minutes * 60), insurancePlan: values.insurancePlan as (typeof ODONTOMAB_INSURANCE_PLANS)[number], treatment: values.treatment as (typeof ODONTOMAB_TREATMENTS)[number], notes: values.notes };
+    if (!ODONTOMAB_REFERENCE_OPTIONS.includes(values.reference as (typeof ODONTOMAB_REFERENCE_OPTIONS)[number])) return toast.error("Selecione a referência");
+    const input = { internalStatus: "closed" as const, crcId: values.crcId, patientName: values.patientName, phone: values.phone, patientType: values.patientType, saleDate: values.saleDate, value: values.value, totalTimeSeconds: Math.round(minutes * 60), insurancePlan: values.insurancePlan as (typeof ODONTOMAB_INSURANCE_PLANS)[number], treatment: values.treatment as (typeof ODONTOMAB_TREATMENTS)[number], reference: values.reference as (typeof ODONTOMAB_REFERENCE_OPTIONS)[number], notes: values.notes };
     if (id) update.mutate({ ...input, id }); else create.mutate(input);
   };
   const openEdit = (sale: SaleRow) => {
     const plan = displayOdontomabInsurance(sale.insurancePlan);
     setEditingId(sale.id);
-    setEditForm({ crcId: sale.crcId, patientName: sale.patientName ?? "", phone: sale.phone ?? "", patientType: sale.patientType ?? "", saleDate: sale.saleDate, value: sale.value.replace(".", ","), timeMinutes: sale.totalTimeSeconds ? String(Number((sale.totalTimeSeconds / 60).toFixed(3))).replace(".", ",") : "", insurancePlan: ODONTOMAB_INSURANCE_PLANS.includes(plan as (typeof ODONTOMAB_INSURANCE_PLANS)[number]) ? plan : "", treatment: ODONTOMAB_TREATMENTS.includes(sale.treatment as (typeof ODONTOMAB_TREATMENTS)[number]) ? sale.treatment ?? "" : "", notes: sale.notes ?? "" });
+    setEditForm({ crcId: sale.crcId, patientName: sale.patientName ?? "", phone: sale.phone ?? "", patientType: sale.patientType ?? "", saleDate: sale.saleDate, value: sale.value.replace(".", ","), timeMinutes: sale.totalTimeSeconds ? String(Number((sale.totalTimeSeconds / 60).toFixed(3))).replace(".", ",") : "", insurancePlan: ODONTOMAB_INSURANCE_PLANS.includes(plan as (typeof ODONTOMAB_INSURANCE_PLANS)[number]) ? plan : "", treatment: ODONTOMAB_TREATMENTS.includes(sale.treatment as (typeof ODONTOMAB_TREATMENTS)[number]) ? sale.treatment ?? "" : "", reference: ODONTOMAB_REFERENCE_OPTIONS.includes(sale.reference as (typeof ODONTOMAB_REFERENCE_OPTIONS)[number]) ? sale.reference ?? "" : "", notes: sale.notes ?? "" });
   };
   const confirmDelete = (id: number) => {
     if (!window.confirm("Excluir somente este registro da Odontomab? Esta ação não pode ser desfeita.")) return;
@@ -148,6 +149,7 @@ function PatientFields({ crcs, values, setValues, onSubmit, pending, editing, on
     <Field label="Paciente Ativo ou Novo *"><select value={values.patientType} onChange={e => set("patientType", e.target.value)} required className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Selecionar</option><option value="active">Ativo</option><option value="new">Novo</option></select></Field>
     <Field label="Convênio / Particular *"><select value={values.insurancePlan} onChange={e => set("insurancePlan", e.target.value)} required className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Selecionar</option>{ODONTOMAB_INSURANCE_PLANS.map(plan => <option key={plan} value={plan}>{plan}</option>)}</select></Field>
     <Field label="Tratamento *"><select value={values.treatment} onChange={e => set("treatment", e.target.value)} required className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Selecionar tratamento</option>{ODONTOMAB_TREATMENTS.map(treatment => <option key={treatment} value={treatment}>{treatment}</option>)}</select></Field>
+    <Field label="Referência *"><select value={values.reference} onChange={e => set("reference", e.target.value)} required className="h-10 w-full rounded-md border border-[#d7e5ec] bg-white px-3 text-sm"><option value="">Selecionar referência</option>{ODONTOMAB_REFERENCE_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}</select></Field>
     <Field label="Status do paciente"><Input value="Paciente fechado" readOnly aria-readonly="true" className="bg-[#f4faf4] font-semibold text-[#2f7b40]" /></Field>
     <Field label="Telefone *"><Input value={values.phone} onChange={e => set("phone", formatPhone(e.target.value))} required placeholder="(11) 99999-0000" /></Field>
     <Field label="Data do registro *"><Input type="date" value={values.saleDate} onChange={e => set("saleDate", e.target.value)} required /></Field>

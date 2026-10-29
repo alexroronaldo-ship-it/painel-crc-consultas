@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { ODONTOMAB_INSURANCE_PLANS, ODONTOMAB_TREATMENTS } from "../../shared/odontomab";
+import { ODONTOMAB_INSURANCE_PLANS, ODONTOMAB_REFERENCE_OPTIONS, ODONTOMAB_TREATMENTS } from "../../shared/odontomab";
 import { protectedProcedure, router } from "../_core/trpc";
 import { createValSale, deleteValSale, getValSale, listValSales, saveValPatientPhoto, updateValSale } from "../db";
 import { storagePut } from "../storage";
@@ -20,6 +20,7 @@ const patientInput = z.object({
   totalTimeSeconds: z.number().int().min(0).max(86400),
   insurancePlan: z.enum(ODONTOMAB_INSURANCE_PLANS, { error: "Selecione um convênio da lista" }),
   treatment: z.enum(ODONTOMAB_TREATMENTS, { error: "Selecione o tratamento" }),
+  reference: z.enum(ODONTOMAB_REFERENCE_OPTIONS, { error: "Selecione a referência" }).optional(),
   notes: z.string().trim().min(2, "Informe uma observação").max(1000),
 });
 const actorName = (user: { name: string | null; email: string | null; openId: string }) => user.name || user.email || user.openId;

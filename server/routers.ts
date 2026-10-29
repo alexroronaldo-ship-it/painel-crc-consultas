@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { createCampaign, createClosure, deleteClosure, deleteEmptyCampaign, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateCampaign, updateClosureTime } from "./db";
+import { createCampaign, createClosure, deleteClosure, deleteEmptyCampaign, listCampaigns, listCampaignUsage, listClosures, listCrcProfiles, listCrcWeeklyActivities, listCrcWeeklyAppointments, mergeCampaigns, saveCrcPhoto, saveCrcWeeklyActivity, saveCrcWeeklyAppointment, updateCampaign, updateClosure, updateClosureTime } from "./db";
 import { storagePut } from "./storage";
 import { orthoActiveRouter } from "./routers/orthoActive";
 import { odontomabRouter } from "./routers/odontomab";
@@ -84,6 +84,27 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const updated = await updateClosureTime(input.id, input.totalTimeSeconds);
         await recordManagerAudit({ module: "marketing", action: "updated", entityId: updated.id, patientName: updated.patientName, crcName: updated.crcName, summary: "Tempo de atendimento corrigido", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
+        return { success: true } as const;
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number().int().positive(),
+        crcName: z.enum(crcNames),
+        patientName: z.string().trim().min(2, "Informe o nome do paciente").max(160),
+        phone: z.string().trim().min(8, "Informe um telefone válido").max(40),
+        closingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do fechamento"),
+        closedItem: z.string().trim().min(2, "Informe o que foi fechado").max(5000),
+        value: z.string().regex(/^\d+(,\d{1,2})?$/, "Informe um valor válido"),
+        totalTimeSeconds: z.number().int().min(0).max(86400),
+        internalStatus: z.literal("closed"),
+        internalNotes: z.string().trim().min(2, "Informe uma observação interna").max(5000),
+        campaignId: z.number().int().positive(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await assertOrtoCrcActive("funnel", input.crcName);
+        const { id, ...values } = input;
+        const updated = await updateClosure(id, { ...values, value: values.value.replace(",", ".") });
+        await recordManagerAudit({ module: "marketing", action: "updated", entityId: updated.id, patientName: updated.patientName, crcName: updated.crcName, summary: "Fechamento de Marketing corrigido", performedBy: ctx.user.id, performedByName: actorName(ctx.user) });
         return { success: true } as const;
       }),
     create: protectedProcedure.input(z.object({

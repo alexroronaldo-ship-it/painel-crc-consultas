@@ -41,6 +41,14 @@ export async function updateActivePatientTime(id: number, totalTimeSeconds: numb
   return current;
 }
 
+export async function updateActivePatient(id: number, input: Pick<InsertOrthoActivePatient, "crcName" | "patientName" | "phone" | "contactChannel" | "reference" | "closingDate" | "closedItem" | "value" | "totalTimeSeconds" | "internalStatus" | "internalNotes">) {
+  const db = await requiredDb();
+  const [current] = await db.select({ id: orthoActivePatients.id, patientName: orthoActivePatients.patientName, crcName: orthoActivePatients.crcName }).from(orthoActivePatients).where(eq(orthoActivePatients.id, id)).limit(1);
+  if (!current) throw new Error("Paciente não encontrado");
+  await db.update(orthoActivePatients).set(input).where(eq(orthoActivePatients.id, id));
+  return { ...current, patientName: input.patientName, crcName: input.crcName };
+}
+
 export async function listActiveCampaigns() {
   const db = await requiredDb();
   return db.select().from(orthoActiveCampaigns).orderBy(desc(orthoActiveCampaigns.startDate), desc(orthoActiveCampaigns.createdAt));

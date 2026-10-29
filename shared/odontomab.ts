@@ -3,6 +3,7 @@ export type OdontomabStatus = keyof typeof ODONTOMAB_STATUS_LABELS;
 
 export const ODONTOMAB_INSURANCE_PLANS = ["Rede Unna (Odontoprev)", "Amil", "Hapvida", "Unimed", "Uniodonto", "Particular"] as const;
 export const ODONTOMAB_TREATMENTS = ["Implante", "Prótese", "Orto", "Clínica em geral"] as const;
+export const ODONTOMAB_REFERENCE_OPTIONS = ["Outdoor", "Plano de saúde (Odontomab)"] as const;
 export const ODONTOMAB_COMMISSION_RATE = 0.002;
 /** A implantação suspende comissões somente para vendas datadas em outubro de 2026. */
 export const ODONTOMAB_COMMISSION_SUSPENDED_MONTH = "2026-10";

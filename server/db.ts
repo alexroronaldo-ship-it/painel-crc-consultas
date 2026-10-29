@@ -106,6 +106,15 @@ export async function updateClosureTime(id: number, totalTimeSeconds: number) {
   return current;
 }
 
+export async function updateClosure(id: number, input: Pick<InsertClosure, "crcName" | "patientName" | "phone" | "closingDate" | "closedItem" | "value" | "totalTimeSeconds" | "internalStatus" | "internalNotes" | "campaignId">) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const [current] = await db.select({ id: closures.id, patientName: closures.patientName, crcName: closures.crcName }).from(closures).where(eq(closures.id, id)).limit(1);
+  if (!current) throw new Error("Fechamento não encontrado");
+  await db.update(closures).set(input).where(eq(closures.id, id));
+  return { ...current, patientName: input.patientName, crcName: input.crcName };
+}
+
 export async function listCrcWeeklyActivities(month: string) {
   const db = await getDb();
   if (!db) return [];
@@ -279,7 +288,7 @@ export async function getValSale(id: number) {
   return sale;
 }
 
-export async function updateValSale(id: number, input: Pick<InsertValSale, "crcId" | "patientName" | "phone" | "patientType" | "internalStatus" | "saleDate" | "value" | "totalTimeSeconds" | "insurancePlan" | "treatment" | "notes">) {
+export async function updateValSale(id: number, input: Pick<InsertValSale, "crcId" | "patientName" | "phone" | "patientType" | "internalStatus" | "saleDate" | "value" | "totalTimeSeconds" | "insurancePlan" | "treatment" | "reference" | "notes">) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível");
   if (!input.crcId) throw new Error("Selecione uma CRC cadastrada");
