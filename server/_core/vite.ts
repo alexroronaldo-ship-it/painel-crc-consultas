@@ -9,7 +9,11 @@ import viteConfig from "../../vite.config";
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    // In middleware mode Vite may inspect the HTTP server before it is
+    // listening and advertise its fallback port (5173) to the browser.
+    // The preview proxy exposes the Express server on PORT (3000 by default),
+    // so the HMR client must reconnect through that same public port.
+    hmr: { server, clientPort: Number(process.env.PORT || 3000) },
     allowedHosts: true as const,
   };
 
